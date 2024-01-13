@@ -1,0 +1,28 @@
+target/
+.idea/
+.DS_Store
+
+dist/
+
+# Compiled binaries
+/target
+**/*.rs.bk
+
+# Rust / Cargo
+Cargo.lock
+Cargo.toml
+
+# Various IDEs, editors, etc.
+/.idea
+/.vscode
+*.swp
+*.swo
+.pyc
+
+# Bevy specific
+/data/*
+!/data/.gitkeep
+/assets/*
+!/assets/.gitkeep
+/web/*
+!/web/.gitkeep
