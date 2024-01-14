@@ -11,6 +11,8 @@ pub struct GridParameters {
     pub grid_size: Vec2,
     pub cells_spacing: f32,
     pub rect: Rect,
+    pub max_row_index: u32,
+    pub max_column_index: u32,
 }
 
 pub struct CoordinateIterator {
@@ -58,6 +60,8 @@ impl GridParameters {
             grid_size,
             cells_spacing: 0.0,
             rect: Rect::from_center_size(Vec2::ZERO, grid_size),
+            max_column_index: column_number - 1,
+            max_row_index: row_number - 1
         }
     }
 }
@@ -70,8 +74,10 @@ pub fn calculate_1d_from_2d_index(grid_parameters: &GridParameters, index: UVec2
     ((index.x) + (index.y) * grid_parameters.column_number) as usize
 }
 
-pub fn calculate_cell_position(grid_parameters: &GridParameters, grid_center: Vec2, cell_index: UVec2) -> Vec2 {
+pub fn calculate_cell_position(grid_parameters: &GridParameters, cell_index: UVec2) -> Vec2 {
     let cell_size = grid_parameters.cell_size;
+    let grid_center = grid_parameters.rect.center();
+
     Vec2::new(grid_center.x - (grid_parameters.grid_size.x / 2.0) + (cell_index.x as f32 * cell_size.x) + (cell_size.x / 2.0),
               grid_center.y - (grid_parameters.grid_size.y / 2.0) + (cell_index.y as f32 * cell_size.y) + (cell_size.y / 2.0))
 }
@@ -84,8 +90,8 @@ pub fn calculate_cell_index_from_position(grid_parameters: &GridParameters, grid
 }
 
 
-pub fn calculate_indexes_in_circle_from_index(grid_parameters: &GridParameters, grid_position_center: Vec2, center_cell_index: UVec2, radius: f32) -> Vec<UVec2> {
-    let central_cell_position = calculate_cell_position(&grid_parameters, grid_position_center, center_cell_index);
+pub fn calculate_indexes_in_circle_from_index(grid_parameters: &GridParameters, center_cell_index: UVec2, radius: f32) -> Vec<UVec2> {
+    let central_cell_position = calculate_cell_position(&grid_parameters, center_cell_index);
 
     let radius_in_cells_x = (radius / grid_parameters.cell_size.x).ceil() as u32;
     let radius_in_cells_y = (radius / grid_parameters.cell_size.y).ceil() as u32;
@@ -105,7 +111,7 @@ pub fn calculate_indexes_in_circle_from_index(grid_parameters: &GridParameters, 
     for y in min_index.y..=max_index.y {
         for x in min_index.x..=max_index.x {
             let index = UVec2::new(x, y);
-            let cell_position = calculate_cell_position(&grid_parameters, grid_position_center, index);
+            let cell_position = calculate_cell_position(&grid_parameters, index);
 
             if euclidean_distance(Vec2::new(cell_position.x, cell_position.y), Vec2::new(central_cell_position.x, central_cell_position.y)) <= radius {
                 indexes.push(index);

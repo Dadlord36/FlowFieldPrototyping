@@ -1,5 +1,5 @@
 use bevy::math::{UVec2, Vec2};
-use bevy::prelude::{Component, Resource};
+use bevy::prelude::{Resource};
 use rand::Rng;
 
 use crate::function_libs::grid_calculations;
@@ -49,7 +49,7 @@ impl FlowField {
             }
         }
 
-        for i  in 0..grid_cols {
+        for i in 0..grid_cols {
             field_values[i as usize][0] = field_values[i as usize][(grid_rows - 1) as usize];
         }
         let final_array: Vec<Vec2> = field_values.concat();
@@ -57,8 +57,14 @@ impl FlowField {
         FlowField::from_array(&final_array)
     }
 
-    fn get_field_at(&self, grid_parameters: &GridParameters, cell_index: UVec2) -> Vec2 {
+    pub fn get_field_at(&self, grid_parameters: &GridParameters, cell_index: UVec2) -> Vec2 {
         self.field[grid_calculations::calculate_1d_from_2d_index(grid_parameters, cell_index)]
+    }
+
+    //get a rotation angle in radians from flow direction at index
+    pub fn get_rotation_angle_at(&self, grid_parameters: &GridParameters, cell_index: UVec2) -> f32 {
+        let field_at_index = self.get_field_at(grid_parameters, cell_index);
+        field_at_index.y.atan2(field_at_index.x)
     }
 }
 
