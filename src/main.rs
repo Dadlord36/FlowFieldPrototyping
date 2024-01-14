@@ -5,10 +5,11 @@
 use bevy::{
     asset::AssetMetaCheck,
     DefaultPlugins,
-    prelude::*,
     window::PrimaryWindow,
 };
-use bevy_prototype_lyon::prelude::*;
+use bevy::prelude::*;
+use bevy_prototype_lyon::prelude::ShapePlugin;
+
 use bevy_game;
 
 mod function_libs;
@@ -16,23 +17,16 @@ mod systems;
 
 use function_libs::{
     flow_field::FlowField,
-    grid_calculations::*,
     grid_calculations,
 };
 
 use systems::{
     flow_driven_movement::*,
     flow_field_manipulations::*,
-    grid_related::spawned_colorized_cells_system
+    grid_related::spawned_colorized_cells_system,
 };
-use crate::function_libs::surface_calculations::CylinderParameters;
+use crate::function_libs::grid_calculations::{calculate_cell_index_from_position, GridParameters};
 
-// ToDo: Replace bevy_game with your new crate name.
-/*use std::io::Cursor;
-use bevy::input::mouse::MouseMotion;
-use bevy::pbr;
-use bevy::reflect::erased_serde::__private::serde::{Deserialize, Serialize};
-use winit::keyboard::NamedKey::Info;*/
 
 fn main() {
     let grid_parameters = GridParameters::new(25, 25, Vec2::new(50f32, 50f32));
@@ -59,7 +53,7 @@ fn main() {
         .add_plugins(ShapePlugin)
         .add_systems(Startup, (spawned_colorized_cells_system, spawn_moving_cubes, visualize_flow_system))
         .add_systems(Update, (capture_cursor_position, mouse_hover_system))
-        .add_systems(Update, moving_system)
+        .add_systems(Update, (adjust_coordinate_system, apply_surface_coordinate_system, grid_relation_system))
         .insert_resource(grid_parameters)
         .insert_resource(flow_field)
         .insert_resource(CursorWorldPosition {
@@ -79,7 +73,7 @@ fn mouse_hover_system(mut cursor_moved_events: EventReader<CursorMoved>, cursor_
         let world_pos = cursor_world_position.position;
         // Calculate the cell index
         if grid_parameter.rect.contains(world_pos) {
-            let cell_index = grid_calculations::calculate_cell_index_from_position(&grid_parameter, grid_center, world_pos);
+            let cell_index = calculate_cell_index_from_position(&grid_parameter, grid_center, world_pos);
 
             if state.prev_cell != Some((cell_index.x, cell_index.y)) {
                 state.prev_cell = Some((cell_index.x, cell_index.y));

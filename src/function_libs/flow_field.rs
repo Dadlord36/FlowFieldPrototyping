@@ -30,15 +30,16 @@ impl FlowField {
 
         let mut field_values = field_init;
 
-        let boundary_thickness = 3;
+        let boundary_thickness = 4;
 
-        for i in 0..boundary_thickness {
+        for i in 1..boundary_thickness {
             let damping = i as f32 / boundary_thickness as f32;
             for j in 0..grid_rows {
                 let first_element = field_values[i as usize][j as usize];
                 let second_element = field_values[(grid_cols - (i + 1)) as usize][j as usize];
 
-                field_values[i as usize][j as usize].y = first_element.y * damping;
+                let new_value = first_element.y * damping;
+                field_values[i as usize][j as usize].y = new_value;
                 field_values[(grid_cols - (i + 1)) as usize][j as usize].y = second_element.y * -damping;
             }
         }
@@ -63,7 +64,7 @@ impl FlowField {
 
     //get a rotation angle in radians from flow direction at index
     pub fn get_rotation_angle_at(&self, grid_parameters: &GridParameters, cell_index: UVec2) -> f32 {
-        let field_at_index = self.get_field_at(grid_parameters, cell_index);
+        let field_at_index: Vec2 = self.get_field_at(grid_parameters, cell_index);
         field_at_index.y.atan2(field_at_index.x)
     }
 }

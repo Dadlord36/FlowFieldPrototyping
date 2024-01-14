@@ -4,7 +4,7 @@ use crate::function_libs::grid_calculations::GridParameters;
 
 #[derive(Component, Clone, Default)]
 pub struct CellIndex {
-    index: UVec2,
+   pub index: UVec2,
 }
 
 impl From<UVec2> for CellIndex {

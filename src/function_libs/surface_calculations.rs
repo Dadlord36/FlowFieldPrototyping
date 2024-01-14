@@ -1,9 +1,7 @@
-use std::ops::{Range, RangeInclusive};
-use bevy::math::{Mat4, Quat, UVec2, Vec2, Vec3};
-use bevy::prelude::{Component, Resource, Transform};
+use bevy::math::{Quat, UVec2, Vec2, Vec3};
+use bevy::prelude::{Component, Res, Resource, Transform};
 use crate::{
-    function_libs::grid_calculations,
-    function_libs::grid_calculations::GridParameters,
+    function_libs::grid_calculations::GridParameters
 };
 
 #[derive(Resource, Clone, Default)]
@@ -25,6 +23,7 @@ pub struct SurfaceCoordinate {
     longitude: f32,
 
 }
+
 
 impl SurfaceCoordinate {
     pub fn new(latitude: f32, longitude: f32) -> Self {
@@ -50,8 +49,8 @@ impl SurfaceCoordinate {
         cell_index2d: UVec2,
     ) -> Self {
         // Convert cell index to a relative position (0..1) in the rect along each axis
-        let rel_pos_x = (cell_index2d.x as f32) / (grid_parameters.column_number as f32 - 1.0);
-        let rel_pos_y = (cell_index2d.y as f32) / (grid_parameters.row_number as f32 - 1.0);
+        let rel_pos_x = (cell_index2d.x as f32 + 0.5) / (grid_parameters.max_column_index as f32 + 1.0);
+        let rel_pos_y = (cell_index2d.y as f32 + 0.5) / (grid_parameters.max_row_index as f32 + 1.0);
 
         // Calculate world coordinates by mapping relative position to rect dimensions
         let world_x = grid_parameters.rect.min.x + rel_pos_x * (grid_parameters.rect.width());
@@ -66,7 +65,7 @@ impl SurfaceCoordinate {
 
         SurfaceCoordinate {
             latitude,
-            longitude
+            longitude,
         }
     }
 
@@ -130,6 +129,19 @@ impl SurfaceCoordinate {
         };
 
         transform
+    }
+
+    #[inline]
+    pub fn calculate_cell_index(&self, grid_parameters: &GridParameters) -> UVec2 {
+        // Define scaling factors
+        let scale_x = (grid_parameters.max_column_index as f32 + 1.0) / 360.0;
+        let scale_y = (grid_parameters.max_row_index as f32 + 1.0) / 360.0;
+
+        // convert SurfaceCoordinate [-180,180] to cell index, factoring in the origin of the rect.
+        let cell_index_x = ((self.longitude + 180.0 + (grid_parameters.rect.min.x * 360.0 / grid_parameters.rect.width())) * scale_x - 0.5).round() as u32;
+        let cell_index_y = ((self.latitude + 180.0 + (grid_parameters.rect.min.y * 360.0 / grid_parameters.rect.height())) * scale_y - 0.5).round() as u32;
+
+        UVec2::new(cell_index_x, cell_index_y)
     }
 }
 
