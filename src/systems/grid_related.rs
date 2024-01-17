@@ -1,11 +1,21 @@
-use bevy::prelude::{Color, Commands, Component, Res, Sprite, SpriteBundle, Transform};
 use bevy::math::{UVec2, Vec2};
-use crate::function_libs::grid_calculations::GridParameters;
+use bevy::prelude::{Color, Commands, Component, Query, Res, ResMut, Sprite, SpriteBundle, Transform, With};
 
-#[derive(Component, Clone, Default)]
+use crate::function_libs::grid_calculations::{GridParameters, GridRelatedData};
+
+#[derive(Component, Clone, Copy, Default)]
 pub struct CellIndex {
-   pub index: UVec2,
+    pub index: UVec2,
 }
+
+impl CellIndex {
+    pub fn new(index: UVec2) -> Self {
+        Self { index }
+    }
+}
+
+#[derive(Component)]
+pub struct GridCellTag;
 
 impl From<UVec2> for CellIndex {
     fn from(item: UVec2) -> Self {
@@ -32,12 +42,12 @@ pub fn spawned_colorized_cells_system(mut commands: Commands, grid_parameter: Re
     let mut color2 = Color::GRAY;
     color2.set_a(0.2);
 
-    for (i, j) in grid_parameter.coordinates() {
-        let color = if (i + j) % 2 == 0 { color1 } else { color2 };
+    for (col, row) in grid_parameter.coordinates() {
+        let color = if (col + row) % 2 == 0 { color1 } else { color2 };
 
         // Adjust the cell's position so the grid is centered at (0, 0)
-        let position = Vec2::new((i as f32 * (cell_size.x + cell_spacing)) - grid_size_x / 2.0 + cell_size.x / 2.0,
-                                 (j as f32 * (cell_size.y + cell_spacing)) - grid_size_y / 2.0 + cell_size.y / 2.0);
+        let position = Vec2::new((col as f32 * (cell_size.x + cell_spacing)) - grid_size_x / 2.0 + cell_size.x / 2.0,
+                                 (row as f32 * (cell_size.y + cell_spacing)) - grid_size_y / 2.0 + cell_size.y / 2.0);
 
         commands.spawn(SpriteBundle {
             sprite: Sprite {
@@ -47,10 +57,31 @@ pub fn spawned_colorized_cells_system(mut commands: Commands, grid_parameter: Re
             },
             transform: Transform::from_translation(position.extend(0.0)),
             ..Default::default()
-        });
+        }).insert(GridCellTag).insert(CellIndex::from(UVec2::new(col, row)));
     }
 }
 
+pub fn reset_cells_colorization(grid_parameters: Res<GridParameters>, mut grid_cell_data: ResMut<GridRelatedData>) {
+    let mut color1 = Color::YELLOW_GREEN;
+    color1.set_a(0.2);
+    let mut color2 = Color::GRAY;
+    color2.set_a(0.2);
 
+    for (i, j) in grid_parameters.coordinates() {
+        let color = if (i + j) % 2 == 0 { color1 } else { color2 };
+        let index = UVec2::new(i, j);
 
+        grid_cell_data.get_data_at_mut(&grid_parameters, index).unwrap().color = color;
+    }
+}
 
+pub fn apply_color_to_cell(grid_parameters: Res<GridParameters>, grid_cell_data: Res<GridRelatedData>,
+                           mut cells_query: Query<(&CellIndex, &mut Sprite), With<GridCellTag>>) {
+    for (cell_index, mut sprite) in cells_query.iter_mut() {
+        let cell_data = grid_cell_data.get_data_at(&grid_parameters, cell_index.index);
+        if cell_data.is_none() {
+            continue;
+        };
+        sprite.color = cell_data.unwrap().color;
+    }
+}

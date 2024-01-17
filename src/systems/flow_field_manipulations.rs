@@ -1,17 +1,21 @@
+use bevy::input::Input;
+use bevy::log::info;
 use bevy::math::{Quat, UVec2, Vec2};
-use bevy::prelude::{Color, Commands, Component, Query, Res, SpatialBundle, Time, Transform, With};
+use bevy::prelude::{Color, Commands, Component, MouseButton, Query, Res, ResMut, SpatialBundle, Time, Transform, With};
 use bevy_prototype_lyon::{
     draw::{Fill, Stroke},
     entity::{Path, ShapeBundle},
-    path::PathBuilder
+    path::PathBuilder,
 };
-use crate::{
-    function_libs::{
-        flow_field::{FlowField},
-        grid_calculations,
-        grid_calculations::GridParameters
-    }
-};
+
+use crate::{CursorWorldPosition, function_libs::{
+    flow_field::FlowField,
+    grid_calculations,
+    grid_calculations::GridParameters,
+}};
+use crate::function_libs::flow_field::ExplosionParameters;
+use crate::function_libs::grid_calculations::calculate_cell_index_from_position;
+use crate::systems::grid_related::CellIndex;
 
 #[derive(Component)]
 pub struct Arrow;
@@ -34,15 +38,27 @@ pub fn visualize_flow_system(mut _commands: Commands, grid_parameter: Res<GridPa
             },
             ..Default::default()
         }, Stroke::new(Color::BLACK, 1.0), Fill::color(Color::RED),
-        )).insert(Arrow);
+        )).insert(Arrow).insert(CellIndex::new(coordinate));
     }
 }
 
-pub fn rotate_arrows_system(time: Res<Time>, mut shapes_transform_query: Query<&mut Transform, With<Arrow>>) {
-    let rotation_speed: f32 = 1.5; // The speed at which the arrows will rotate (in radians per second)
-    for mut transform in shapes_transform_query.iter_mut() {
-        let rotation_increment = Quat::from_rotation_z(-rotation_speed * time.delta_seconds());
-        transform.rotation = transform.rotation * rotation_increment;
+pub fn rotate_flow_arrows_system(mut shapes_transform_query: Query<(&mut Transform, &CellIndex), With<Arrow>>,
+                                 grid_parameter: Res<GridParameters>, flow_field: Res<FlowField>) {
+
+    for (mut transform, cell_index) in shapes_transform_query.iter_mut() {
+
+        transform.rotation = Quat::from_rotation_z(flow_field.get_rotation_angle_at(&grid_parameter, cell_index.index));
+    }
+}
+
+pub fn flow_explosion_system(input: Res<Input<MouseButton>>, cursor_world_position: Res<CursorWorldPosition>,
+                             grid_parameters: Res<GridParameters>, mut flow_field: ResMut<FlowField>) {
+    if input.just_pressed(MouseButton::Left) {
+        info!("LMB was pressed!");
+
+        let world_pos = cursor_world_position.position;
+        let hovered_cell_index = calculate_cell_index_from_position(&grid_parameters, world_pos);
+        flow_field.apply_smooth_explosion(&grid_parameters, ExplosionParameters::new(hovered_cell_index, 4.0));
     }
 }
 

@@ -7,13 +7,13 @@ use bevy::{
     DefaultPlugins,
     window::PrimaryWindow,
 };
+use bevy::input::mouse::MouseMotion;
 use bevy::prelude::*;
 use bevy_prototype_lyon::prelude::ShapePlugin;
 
-use bevy_game;
-
 mod function_libs;
 mod systems;
+mod tests;
 
 use function_libs::{
     flow_field::FlowField,
@@ -25,12 +25,14 @@ use systems::{
     flow_field_manipulations::*,
     grid_related::spawned_colorized_cells_system,
 };
-use crate::function_libs::grid_calculations::{calculate_cell_index_from_position, GridParameters};
+use crate::function_libs::grid_calculations::{calculate_cell_index_from_position, GridCellData, GridParameters, GridRelatedData};
+use crate::systems::grid_related::{apply_color_to_cell, reset_cells_colorization};
 
 
 fn main() {
     let grid_parameters = GridParameters::new(25, 25, Vec2::new(50f32, 50f32));
     let flow_field = FlowField::form_field(grid_parameters.column_number, grid_parameters.row_number);
+    let grid_related_data = GridRelatedData::new(&grid_parameters);
 
     App::new()
         .insert_resource(Msaa::Sample4)
@@ -38,7 +40,7 @@ fn main() {
         .insert_resource(ClearColor(Color::rgb(0.4, 0.4, 0.4)))
         .add_plugins(DefaultPlugins.set(WindowPlugin {
             primary_window: Some(Window {
-                title: "Bevy game".to_string(), // ToDo
+                title: "Interactive Crowd".to_string(), // ToDo
                 // Bind to canvas included in `index.html`
                 canvas: Some("#bevy".to_owned()),
                 // The canvas size is constrained in index.html and build/web/styles.css
@@ -49,13 +51,16 @@ fn main() {
             }),
             ..default()
         }))
-        .add_plugins(bevy_game::GamePlugin)
+        // .add_plugins(bevy_game::GamePlugin)
         .add_plugins(ShapePlugin)
-        .add_systems(Startup, (spawned_colorized_cells_system, spawn_moving_cubes, visualize_flow_system))
-        .add_systems(Update, (capture_cursor_position, mouse_hover_system))
-        .add_systems(Update, (adjust_coordinate_system, apply_surface_coordinate_system, grid_relation_system))
+        .add_systems(Startup, (setup, spawned_colorized_cells_system, visualize_flow_system, spawn_moving_cubes).chain())
+        .add_systems(Update, (capture_cursor_position, reset_cells_colorization, mouse_hover_system, cell_occupation_highlight_system, apply_color_to_cell).chain())
+        .add_systems(Update, (adjust_coordinate_system, apply_surface_coordinate_system, grid_relation_system).chain())
+        .add_systems(Update, (flow_explosion_system, rotate_flow_arrows_system))
         .insert_resource(grid_parameters)
+        .insert_resource(grid_related_data)
         .insert_resource(flow_field)
+        .insert_resource(HoverCell::default())
         .insert_resource(CursorWorldPosition {
             position: Vec2::ZERO,
         })
@@ -63,41 +68,65 @@ fn main() {
         .run();
 }
 
+fn setup(mut commands: Commands) {
+    commands.spawn(Camera2dBundle::default());
+}
 
 fn mouse_hover_system(mut cursor_moved_events: EventReader<CursorMoved>, cursor_world_position: Res<CursorWorldPosition>,
-                      grid_parameter: Res<GridParameters>, mut state: Local<HoverState>,  // Cache state
-) {
-    let grid_center = Vec2::ZERO;
+                      mut grid_cell_data: ResMut<GridRelatedData>, grid_parameters: Res<GridParameters>)
+{
     // Since the mouse can move multiple times per frame, only keep the last position
-    if let Some(_cursor_moved) = cursor_moved_events.read_with_id().last() {
-        let world_pos = cursor_world_position.position;
-        // Calculate the cell index
-        if grid_parameter.rect.contains(world_pos) {
-            let cell_index = calculate_cell_index_from_position(&grid_parameter, grid_center, world_pos);
+    /*    if let Some(_cursor_moved) = cursor_moved_events.read_with_id().last()
+        {*/
+    let mut selection_color = Color::ORANGE;
+    selection_color.set_a(0.3);
 
-            if state.prev_cell != Some((cell_index.x, cell_index.y)) {
-                state.prev_cell = Some((cell_index.x, cell_index.y));
-                info!("Now hovering over cell ({}, {})", cell_index.x, cell_index.y);
+    let world_pos = cursor_world_position.position;
+    // Calculate the cell index
+    if grid_parameters.rect.contains(world_pos) {
+        let hovered_cell_index = calculate_cell_index_from_position(&grid_parameters, world_pos);
+
+        /*       if state.prev_cell != hovered_cell_index
+               {
+                   state.prev_cell = hovered_cell_index;*/
+
+        let cells_in_range = grid_calculations::calculate_indexes_in_circle_from_index(&grid_parameters,
+                                                                                       hovered_cell_index, 3);
+        for cell_index in cells_in_range {
+            let mut cell_data = grid_cell_data.get_data_at_mut(&grid_parameters, cell_index);
+            if cell_data.is_none() {
+                warn!("Cell data is invalid!");
+                continue;
             }
+            cell_data.unwrap().color = selection_color;
+        }
+        // }
+    }
+    // }
+}
+
+fn capture_cursor_position(mut mouse_motion_events: EventReader<MouseMotion>,
+                           grid_parameters: Res<GridParameters>, mut hover_cell: ResMut<HoverCell>,
+                           mut cursor_position: ResMut<CursorWorldPosition>,
+                           q_windows: Query<&Window, With<PrimaryWindow>>,
+                           camera_query: Query<(&Transform, &GlobalTransform), With<Camera2d>>)
+{
+    for _ in mouse_motion_events.read() {
+        // Access the main window
+        let window = q_windows.single();
+
+        if let Some(position) = q_windows.single().cursor_position() {
+            // Get the camera transform.
+            let (camera_transform, _global_transform) = camera_query.single();
+            // Calculate the world position.
+            let world_position = screen_to_world(position, window, camera_transform);
+            cursor_position.position = world_position;
+            let hovered_cell_index = calculate_cell_index_from_position(&grid_parameters, world_position);
+            hover_cell.hovered_cell = hovered_cell_index;
         }
     }
 }
 
-fn capture_cursor_position(
-    mut cursor_position: ResMut<CursorWorldPosition>,
-    q_windows: Query<&Window, With<PrimaryWindow>>,
-    camera_query: Query<(&Transform, &GlobalTransform), With<Camera2d>>) {
-    // Access the main window
-    let window = q_windows.single();
-
-    if let Some(position) = q_windows.single().cursor_position() {
-        // Get the camera transform.
-        let (camera_transform, _global_transform) = camera_query.single();
-        // Calculate the world position.
-        let world_position = screen_to_world(position, window, camera_transform);
-        cursor_position.position = world_position;
-    }
-}
 
 // Convert function from screen space to world space
 fn screen_to_world(pos: Vec2, window: &Window, camera: &Transform) -> Vec2 {
@@ -117,23 +146,18 @@ fn screen_to_world(pos: Vec2, window: &Window, camera: &Transform) -> Vec2 {
 }
 
 
-// Local state
-struct HoverState {
-    prev_cell: Option<(u32, u32)>,
-}
-
-impl Default for HoverState {
-    fn default() -> Self {
-        HoverState {
-            prev_cell: None,
-        }
-    }
+#[derive(Resource, Default)]
+struct HoverCell {
+    hovered_cell: UVec2,
 }
 
 #[derive(Resource)]
 struct CursorWorldPosition {
     position: Vec2,
 }
+
+#[derive(Component)]
+struct SelectedCell;
 
 impl Default for CursorWorldPosition {
     fn default() -> Self {
