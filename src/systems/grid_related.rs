@@ -1,29 +1,7 @@
 use bevy::math::{UVec2, Vec2};
-use bevy::prelude::{Color, Commands, Component, Query, Res, ResMut, Sprite, SpriteBundle, Transform, With};
+use bevy::prelude::{Color, Commands, Query, Res, ResMut, Sprite, SpriteBundle, Transform, With};
 
-use crate::function_libs::grid_calculations::{GridParameters, GridRelatedData};
-
-#[derive(Component, Clone, Copy, Default)]
-pub struct CellIndex {
-    pub index: UVec2,
-}
-
-impl CellIndex {
-    pub fn new(index: UVec2) -> Self {
-        Self { index }
-    }
-}
-
-#[derive(Component)]
-pub struct GridCellTag;
-
-impl From<UVec2> for CellIndex {
-    fn from(item: UVec2) -> Self {
-        CellIndex {
-            index: item,
-        }
-    }
-}
+use crate::components::grid_components::{CellIndex, GridCellTag, GridParameters, GridRelatedData};
 
 pub fn spawned_colorized_cells_system(mut commands: Commands, grid_parameter: Res<GridParameters>)
 {

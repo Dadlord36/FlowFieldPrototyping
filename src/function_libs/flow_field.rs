@@ -1,23 +1,15 @@
 use std::cmp::{max, min};
-use std::ops::RangeInclusive;
+
 use bevy::math::{UVec2, Vec2};
-use bevy::prelude::{Resource};
 use rand::Rng;
 
-use crate::function_libs::grid_calculations;
-use crate::function_libs::grid_calculations::GridParameters;
-
-#[derive(Resource)]
-pub struct FlowField {
-    field: Vec<Vec2>,
-}
-
-#[derive(Default)]
-pub struct ExplosionParameters
-{
-    pub impact_center_cell_index: UVec2,
-    pub impact_radius: f32,
-}
+use crate::{
+    components::{
+        flow_field_components::{ExplosionParameters, FlowField},
+        grid_components::GridParameters
+    },
+    function_libs::grid_calculations
+};
 
 impl ExplosionParameters {
     pub fn new(impact_center_cell_index: UVec2, impact_radius: f32) -> Self {

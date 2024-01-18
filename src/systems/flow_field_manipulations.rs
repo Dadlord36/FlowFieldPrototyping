@@ -1,24 +1,35 @@
-use bevy::input::Input;
-use bevy::log::info;
-use bevy::math::{Quat, UVec2, Vec2};
-use bevy::prelude::{Color, Commands, Component, MouseButton, Query, Res, ResMut, SpatialBundle, Time, Transform, With};
+use bevy::{
+    log::info,
+    input::Input,
+    math::{Quat, UVec2, Vec2},
+    prelude::{Color, Commands, MouseButton, Query, Res, ResMut, SpatialBundle, Transform, With},
+};
 use bevy_prototype_lyon::{
     draw::{Fill, Stroke},
     entity::{Path, ShapeBundle},
     path::PathBuilder,
 };
 
-use crate::{CursorWorldPosition, function_libs::{
-    flow_field::FlowField,
-    grid_calculations,
-    grid_calculations::GridParameters,
-}};
-use crate::function_libs::flow_field::ExplosionParameters;
-use crate::function_libs::grid_calculations::calculate_cell_index_from_position;
-use crate::systems::grid_related::CellIndex;
-
-#[derive(Component)]
-pub struct Arrow;
+use crate::{
+    CursorWorldPosition,
+    function_libs::{
+        grid_calculations::{
+            self,
+            calculate_cell_index_from_position
+        },
+    },
+    components::{
+        flow_field_components::{
+            Arrow,
+            FlowField,
+            ExplosionParameters
+        },
+        grid_components::{
+            GridParameters,
+            CellIndex
+        }
+    }
+};
 
 pub fn visualize_flow_system(mut _commands: Commands, grid_parameter: Res<GridParameters>, flow_field: Res<FlowField>) {
     // Create a new PathBuilder for the arrow shape
@@ -44,9 +55,7 @@ pub fn visualize_flow_system(mut _commands: Commands, grid_parameter: Res<GridPa
 
 pub fn rotate_flow_arrows_system(mut shapes_transform_query: Query<(&mut Transform, &CellIndex), With<Arrow>>,
                                  grid_parameter: Res<GridParameters>, flow_field: Res<FlowField>) {
-
     for (mut transform, cell_index) in shapes_transform_query.iter_mut() {
-
         transform.rotation = Quat::from_rotation_z(flow_field.get_rotation_angle_at(&grid_parameter, cell_index.index));
     }
 }

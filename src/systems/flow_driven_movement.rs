@@ -1,52 +1,21 @@
-use bevy::math::{UVec2, Vec2};
-use bevy::prelude::*;
-
-use crate::function_libs::{
-    flow_field::FlowField,
-    grid_calculations::*,
+use bevy::{
+    math::{UVec2, Vec2},
+    prelude::*,
 };
-use crate::function_libs::surface_calculations::SurfaceCoordinate;
-use crate::systems::grid_related::CellIndex;
 
-#[derive(Copy, Clone)]
-pub enum Direction {
-    North,
-    NorthEast,
-    East,
-    SouthEast,
-    South,
-    SouthWest,
-    West,
-    NorthWest,
-}
-
-impl Direction {
-    fn as_usize(&self) -> usize {
-        *self as usize
-    }
-}
-
-const DIRECTIONS: [(i8, i8); 8] = [
-    (-1, 0),  // North
-    (-1, 1),  // North-East
-    (0, 1),   // East
-    (1, 1),   // South-East
-    (1, 0),   // South
-    (1, -1),  // South-West
-    (0, -1),  // West
-    (-1, -1), // North-West
-];
-
-#[derive(Component, Clone, Default)]
-pub struct MoveTag;
-
-#[derive(Bundle, Clone, Default)]
-pub struct SurfaceWalkerBundle {
-    surface_coordinate: SurfaceCoordinate,
-    occupied_cell_index: CellIndex,
-    sprite_bundle: SpriteBundle,
-    move_tag: MoveTag,
-}
+use crate::{
+    bundles::movables::SurfaceWalkerBundle,
+    components::{
+        grid_components::{
+            GridParameters, GridRelatedData, CellIndex,
+        },
+        movement_components::{
+            MoveTag,
+            SurfaceCoordinate
+        }
+    },
+    components::flow_field_components::FlowField
+};
 
 pub fn spawn_moving_cubes(mut commands: Commands, grid_parameters: Res<GridParameters>)
 {

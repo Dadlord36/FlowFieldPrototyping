@@ -1,30 +1,6 @@
-use std::cmp::{max, min};
-use bevy::log::info;
-
+use std::cmp::min;
 use bevy::math::{Rect, UVec2, Vec2};
-use bevy::prelude::{Color, Resource};
-
-#[derive(Resource)]
-pub struct GridParameters {
-    pub column_number: u32,
-    pub row_number: u32,
-    pub cell_size: Vec2,
-    pub grid_size: Vec2,
-    pub cells_spacing: f32,
-    pub rect: Rect,
-    pub max_row_index: u32,
-    pub max_column_index: u32,
-}
-
-#[derive(Clone, Default)]
-pub struct GridCellData {
-    pub color: Color,
-}
-
-#[derive(Resource)]
-pub struct GridRelatedData {
-    data: Vec<GridCellData>,
-}
+use crate::components::grid_components::{GridCellData, GridParameters, GridRelatedData};
 
 impl GridRelatedData {
     pub fn new(grid_parameters: &GridParameters) -> Self {

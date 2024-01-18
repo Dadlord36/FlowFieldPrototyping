@@ -3,45 +3,20 @@ use std::fmt::{Display, Formatter};
 use bevy::math::{Quat, UVec2, Vec2, Vec3};
 use bevy::prelude::{Component, Transform};
 
-use crate::function_libs::grid_calculations::GridParameters;
-
-/*#[derive(Resource, Clone, Default)]
-pub struct CylinderParameters {
-    radius: f32,
-    height: f32,
-}*/
+use crate::{
+    components::{
+        movement_components::{
+            self, SurfaceCoordinate, CoordinateBounds,
+        },
+        grid_components::{
+            GridParameters, GridRelatedData, GridCellData
+        },
+    },
+    function_libs::grid_calculations,
+};
 
 const COORDINATE_BOUNDS: CoordinateBounds = CoordinateBounds { min: -180.0, max: 180.0 };
 
-struct CoordinateBounds {
-    min: f32,
-    max: f32,
-}
-
-
-/// Represents a surface coordinate with latitude and longitude values.
-///
-/// This struct is used to store latitude and longitude values for a particular location on the surface of the Earth.
-/// It implements the `Component`, `Clone`, and `Default` traits.
-///
-/// # Example
-///
-/// ```
-/// use rust_game_engine::components::SurfaceCoordinate;
-///
-/// let coordinate = SurfaceCoordinate {
-///     latitude: 42.3601,
-///     longitude: -71.0589,
-/// };
-///
-/// assert_eq!(coordinate.latitude, 42.3601);
-/// assert_eq!(coordinate.longitude, -71.0589);
-/// ```
-#[derive(Component, Clone, Default)]
-pub struct SurfaceCoordinate {
-    pub latitude: f32,
-    pub longitude: f32,
-}
 
 impl Display for SurfaceCoordinate {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {

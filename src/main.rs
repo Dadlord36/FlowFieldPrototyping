@@ -6,28 +6,50 @@ use bevy::{
     asset::AssetMetaCheck,
     DefaultPlugins,
     window::PrimaryWindow,
+    input::mouse::MouseMotion,
+    prelude::*,
 };
-use bevy::input::mouse::MouseMotion;
-use bevy::prelude::*;
 use bevy_prototype_lyon::prelude::ShapePlugin;
+
+use crate::{
+    components::{
+        flow_field_components::FlowField,
+        grid_components::{GridParameters, GridRelatedData},
+    },
+    function_libs::grid_calculations::{self, calculate_cell_index_from_position},
+    systems::{
+        flow_driven_movement::*,
+        flow_field_manipulations::*,
+        grid_related::*,
+    },
+};
 
 mod function_libs;
 mod systems;
 mod tests;
+mod components;
+mod bundles;
 
-use function_libs::{
-    flow_field::FlowField,
-    grid_calculations,
-};
+#[derive(Resource, Default)]
+struct HoverCell {
+    hovered_cell: UVec2,
+}
 
-use systems::{
-    flow_driven_movement::*,
-    flow_field_manipulations::*,
-    grid_related::spawned_colorized_cells_system,
-};
-use crate::function_libs::grid_calculations::{calculate_cell_index_from_position, GridCellData, GridParameters, GridRelatedData};
-use crate::systems::grid_related::{apply_color_to_cell, reset_cells_colorization};
+#[derive(Resource)]
+struct CursorWorldPosition {
+    position: Vec2,
+}
 
+#[derive(Component)]
+struct SelectedCell;
+
+impl Default for CursorWorldPosition {
+    fn default() -> Self {
+        crate::CursorWorldPosition {
+            position: Vec2::ZERO
+        }
+    }
+}
 
 fn main() {
     let grid_parameters = GridParameters::new(25, 25, Vec2::new(50f32, 50f32));
@@ -146,23 +168,3 @@ fn screen_to_world(pos: Vec2, window: &Window, camera: &Transform) -> Vec2 {
 }
 
 
-#[derive(Resource, Default)]
-struct HoverCell {
-    hovered_cell: UVec2,
-}
-
-#[derive(Resource)]
-struct CursorWorldPosition {
-    position: Vec2,
-}
-
-#[derive(Component)]
-struct SelectedCell;
-
-impl Default for CursorWorldPosition {
-    fn default() -> Self {
-        crate::CursorWorldPosition {
-            position: Vec2::ZERO
-        }
-    }
-}
