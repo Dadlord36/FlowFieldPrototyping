@@ -11,23 +11,22 @@ use bevy_prototype_lyon::{
 };
 
 use crate::{
-    CursorWorldPosition,
     function_libs::{
         grid_calculations::{
-            self,
-            calculate_cell_index_from_position
+            calculate_cell_index_from_position, calculate_cell_position,
         },
     },
     components::{
         flow_field_components::{
             Arrow,
             FlowField,
-            ExplosionParameters
+            ExplosionParameters,
         },
         grid_components::{
             GridParameters,
-            CellIndex
-        }
+            CellIndex,
+        },
+        world_manipulation_components::CursorWorldPosition
     }
 };
 
@@ -35,7 +34,7 @@ pub fn visualize_flow_system(mut _commands: Commands, grid_parameter: Res<GridPa
     // Create a new PathBuilder for the arrow shape
     for (col, row) in grid_parameter.coordinates() {
         let coordinate = UVec2::new(col, row);
-        let cell_position = grid_calculations::calculate_cell_position(&grid_parameter, coordinate).extend(0.0);
+        let cell_position = calculate_cell_position(&grid_parameter, coordinate).extend(0.0);
         let mut new_transform = Transform::from_xyz(cell_position.x, cell_position.y, cell_position.z);
 
         new_transform.rotation = Quat::from_rotation_z(flow_field.get_rotation_angle_at(&grid_parameter, coordinate));

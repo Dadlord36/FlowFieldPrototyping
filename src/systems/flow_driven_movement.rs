@@ -52,12 +52,12 @@ pub fn spawn_moving_cubes(mut commands: Commands, grid_parameters: Res<GridParam
 pub fn adjust_coordinate_system(time: Res<Time>, flow_field: Res<FlowField>, grid_parameters: Res<GridParameters>,
                                 mut query: Query<(&mut SurfaceCoordinate, &CellIndex), With<MoveTag>>)
 {
-    let delta = 1.0 * time.delta_seconds();
+    let delta = 4.0 * time.delta_seconds();
 
     for (mut surface_calculations, cell_index) in query.iter_mut() {
         let direction = flow_field.get_field_at(&grid_parameters, cell_index.index);
 
-        surface_calculations.adjust_coordinate(direction);
+        surface_calculations.adjust_coordinate(direction * delta);
     }
 }
 
