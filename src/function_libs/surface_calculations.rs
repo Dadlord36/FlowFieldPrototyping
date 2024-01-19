@@ -50,8 +50,8 @@ impl SurfaceCoordinate {
         let scale_y = (self.longitude - COORDINATE_BOUNDS.min) / (COORDINATE_BOUNDS.max - COORDINATE_BOUNDS.min);
 
         // Using the calculated scale, find the corresponding cell index
-        let cell_index_x = (scale_x * grid_parameters.max_column_index as f32).floor() as u32;
-        let cell_index_y = (scale_y * grid_parameters.max_row_index as f32).floor() as u32;
+        let cell_index_x = (scale_x * grid_parameters.column_number as f32).floor() as u32;
+        let cell_index_y = (scale_y * grid_parameters.row_number as f32).floor() as u32;
 
         UVec2::new(cell_index_x, cell_index_y)
     }
@@ -67,6 +67,12 @@ impl SurfaceCoordinate {
             latitude,
             longitude,
         }
+    }
+
+    #[inline]
+    pub fn calculate_flat_surface_coordinate_from_pos(grid_parameters: &GridParameters, world_position: Vec2) -> Self{
+        let hovered_cell_index = grid_calculations::calculate_cell_index_from_position(grid_parameters, world_position);
+        return SurfaceCoordinate::calculate_flat_surface_coordinate_from(grid_parameters, hovered_cell_index);
     }
 
     #[inline]

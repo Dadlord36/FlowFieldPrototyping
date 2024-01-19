@@ -31,6 +31,8 @@ pub fn spawn_moving_cubes(mut commands: Commands, grid_parameters: Res<GridParam
         cell_index.y = y;
 
         let coordinate = SurfaceCoordinate::calculate_flat_surface_coordinate_from(&grid_parameters, cell_index);
+        let mut coordinate_world_transform = coordinate.project_surface_coordinate_on_grid(&grid_parameters);
+        coordinate_world_transform.translation.z = 2.0;
 
         commands.spawn(SurfaceWalkerBundle {
             surface_coordinate: coordinate.clone(),
@@ -41,7 +43,7 @@ pub fn spawn_moving_cubes(mut commands: Commands, grid_parameters: Res<GridParam
                     custom_size: Some(cell_size),
                     ..Default::default()
                 },
-                transform: coordinate.project_surface_coordinate_on_grid(&grid_parameters),
+                transform: coordinate_world_transform,
                 ..Default::default()
             },
             ..Default::default()
@@ -70,10 +72,11 @@ pub fn apply_surface_coordinate_system(grid_parameters: Res<GridParameters>,
 }
 
 pub fn grid_relation_system(grid_parameters: Res<GridParameters>,
-                            mut query: Query<(&mut CellIndex, &SurfaceCoordinate),
+                            mut query: Query<(&mut CellIndex, &SurfaceCoordinate, &Transform),
                                 With<MoveTag>>)
 {
-    for (mut cell_index, surface_calculations) in query.iter_mut() {
+    for (mut cell_index, surface_calculations, transform) in query.iter_mut() {
+
         cell_index.index = surface_calculations.calculate_cell_index_on_flat_surface(&grid_parameters);
     }
 }

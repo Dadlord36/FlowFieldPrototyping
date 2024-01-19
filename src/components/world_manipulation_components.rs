@@ -6,17 +6,9 @@ pub struct HoverCell {
     pub hovered_cell: UVec2,
 }
 
-#[derive(Resource)]
+#[derive(Resource, Default)]
 pub struct CursorWorldPosition {
     pub position: Vec2,
-}
-
-impl Default for CursorWorldPosition {
-    fn default() -> Self {
-        CursorWorldPosition {
-            position: Vec2::ZERO
-        }
-    }
 }
 
 #[derive(Component)]

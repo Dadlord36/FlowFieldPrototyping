@@ -17,6 +17,7 @@ use crate::{
         coordinates_calculations::screen_to_world,
     },
 };
+use crate::components::movement_components::SurfaceCoordinate;
 
 pub fn mouse_hover_system(mut cursor_moved_events: EventReader<CursorMoved>, cursor_world_position: Res<CursorWorldPosition>,
                           mut grid_cell_data: ResMut<GridRelatedData>, grid_parameters: Res<GridParameters>)
@@ -36,8 +37,7 @@ pub fn mouse_hover_system(mut cursor_moved_events: EventReader<CursorMoved>, cur
                {
                    state.prev_cell = hovered_cell_index;*/
 
-        let cells_in_range = grid_calculations::calculate_indexes_in_circle_from_index(&grid_parameters,
-                                                                                       hovered_cell_index, 3);
+        let cells_in_range = grid_calculations::calculate_indexes_in_circle_from_index(&grid_parameters, hovered_cell_index, 3);
         for cell_index in cells_in_range {
             let mut cell_data = grid_cell_data.get_data_at_mut(&grid_parameters, cell_index);
             if cell_data.is_none() {
@@ -60,15 +60,16 @@ pub fn capture_cursor_position(mut mouse_motion_events: EventReader<MouseMotion>
     for _ in mouse_motion_events.read() {
         // Access the main window
         let window = q_windows.single();
+        let grid_parameters_ref = &grid_parameters;
 
         if let Some(position) = q_windows.single().cursor_position() {
             // Get the camera transform.
             let (camera_transform, _global_transform) = camera_query.single();
             // Calculate the world position.
             let world_position = screen_to_world(position, window, camera_transform);
+
             cursor_position.position = world_position;
-            let hovered_cell_index = grid_calculations::calculate_cell_index_from_position(&grid_parameters, world_position);
-            hover_cell.hovered_cell = hovered_cell_index;
+            hover_cell.hovered_cell = grid_calculations::calculate_cell_index_from_position(grid_parameters_ref, world_position);
         }
     }
 }

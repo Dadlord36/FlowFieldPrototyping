@@ -19,14 +19,12 @@ impl GridRelatedData {
 }
 
 pub struct CoordinateIterator {
-    inner: Box<dyn Iterator<Item = (u32, u32)>>
+    inner: Box<dyn Iterator<Item=(u32, u32)> + 'static>,
 }
 
 impl CoordinateIterator {
     pub fn new(max_i: u32, max_j: u32) -> Self {
-        let inner = (0..max_j).flat_map(move |j| {
-            std::iter::repeat(j).zip(0..max_i)
-        });
+        let inner = (0..max_j).flat_map(move |j| (0..max_i).map(move |i| (i, j)));
         Self { inner: Box::new(inner) }
     }
 }
@@ -97,7 +95,8 @@ pub fn calculate_cell_index_from_position(grid_parameters: &GridParameters, posi
 }
 
 #[inline]
-pub fn calculate_indexes_in_circle_from_index(grid_parameters: &GridParameters, center_cell_index: UVec2, radius: u32) -> Vec<UVec2> {
+pub fn calculate_indexes_in_circle_from_index(grid_parameters: &GridParameters, center_cell_index: UVec2, radius: u32)
+                                              -> Vec<UVec2> {
     let indexes = calculate_indexes_in_range(grid_parameters, center_cell_index, radius);
     let result_indexes: Vec<UVec2> = indexes.into_iter()
         .filter(|&index| euclidean_distance_unsigned(center_cell_index, index) <= radius as f32)
@@ -106,7 +105,8 @@ pub fn calculate_indexes_in_circle_from_index(grid_parameters: &GridParameters, 
 }
 
 #[inline]
-pub fn calculate_indexes_in_range(grid_parameters: &GridParameters, center_cell_index: UVec2, radius: u32) -> Vec<UVec2> {
+pub fn calculate_indexes_in_range(grid_parameters: &GridParameters, center_cell_index: UVec2, radius: u32)
+                                  -> Vec<UVec2> {
     let (min_limit, max_limit) = grid_parameters.calculate_indexes_limits_in_rang(center_cell_index, radius);
 
     (min_limit.y..=max_limit.y).flat_map(|y| {
