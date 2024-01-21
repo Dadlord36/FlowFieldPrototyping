@@ -2,6 +2,7 @@ use bevy::{
     math::{UVec2, Vec2},
     prelude::*,
 };
+use bevy::math::DVec2;
 
 use crate::{
     bundles::movables::SurfaceWalkerBundle,
@@ -56,10 +57,10 @@ pub fn spawn_moving_cubes(mut commands: Commands, grid_parameters: Res<GridParam
 pub fn adjust_coordinate_system(time: Res<Time>, flow_field: Res<FlowField>, grid_parameters: Res<GridParameters>,
                                 mut query: Query<(&mut SurfaceCoordinate, &CellIndex), With<MoveTag>>)
 {
-    let delta = 4.0 * time.delta_seconds();
+    let delta:f64 = (0.1 * time.delta_seconds()) as f64;
 
     for (mut surface_calculations, cell_index) in query.iter_mut() {
-        let direction = flow_field.get_field_at(&grid_parameters, cell_index.index);
+        let direction:DVec2 = DVec2::from(flow_field.get_field_at(&grid_parameters, cell_index.index));
 
         surface_calculations.adjust_coordinate(direction * delta);
     }

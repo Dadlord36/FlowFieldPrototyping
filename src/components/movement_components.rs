@@ -34,13 +34,13 @@ pub struct MoveTag;
 
 #[derive(Component, Clone, Default)]
 pub struct SurfaceCoordinate {
-    pub latitude: f32,
-    pub longitude: f32,
+    pub latitude: f64,
+    pub longitude: f64,
 }
 
 pub struct CoordinateBounds {
-    pub min: f32,
-    pub max: f32,
+    pub min: f64,
+    pub max: f64,
 }
 
 

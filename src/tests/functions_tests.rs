@@ -62,31 +62,40 @@ fn test_grid_indexing() {
 }
 
 #[test]
-fn test_surface_coord_conversion() {
+fn test_surface_coord_to_occupied_cell_index_conversion() {
     let grid_parameters: GridParameters = construct_default_grid();
 
     for (col, row) in grid_parameters.coordinates() {
         let cell_index_2d = UVec2::new(col, row);
+        assert!(grid_parameters.is_cell_index_in_grid_bounds(cell_index_2d), "cell_index_2d:{cell_index_2d} is not in grid bounds");
+
         let coordinate = SurfaceCoordinate::calculate_flat_surface_coordinate_from(&grid_parameters, cell_index_2d);
         let restored_index = coordinate.calculate_cell_index_on_flat_surface(&grid_parameters);
-        let restored_location = coordinate.project_surface_coordinate_on_grid(&grid_parameters).translation.truncate();
 
         assert!(grid_parameters.is_cell_index_in_grid_bounds(restored_index), "restored_index:{restored_index} is not in grid bounds");
-        assert!(grid_parameters.is_position_in_grid_bounds(restored_location), "restored_index{restored_index} restored_location:{restored_location} is not in grid bounds");
 
         assert_eq!(cell_index_2d, restored_index, "original_index: {cell_index_2d}, coordinate: {coordinate}, restored_index: {restored_index}");
         println!("original_index: {cell_index_2d} : restored_index: {restored_index}");
     }
+}
 
-   /* for (col, row) in grid_parameters.coordinates() {
+#[test]
+fn test_coordinate_to_position_on_grid_conversion()
+{
+    let grid_parameters: GridParameters = construct_default_grid();
+
+    for (col, row) in grid_parameters.coordinates() {
         let cell_index_2d = UVec2::new(col, row);
-        let original_position = grid_parameters.calculate_cell_position(cell_index_2d);
+        assert!(grid_parameters.is_cell_index_in_grid_bounds(cell_index_2d), "cell_index: {cell_index_2d} is out of the grid bounds.");
+        let grid_cell_position = grid_parameters.calculate_cell_position(cell_index_2d);
+        // assert!(grid_parameters.is_position_in_grid_bounds(grid_cell_position), "grid_cell_position {grid_cell_position} is out of the grid bounds.");
+
         let coordinate = SurfaceCoordinate::calculate_flat_surface_coordinate_from(&grid_parameters, cell_index_2d);
         let restored_position = coordinate.project_surface_coordinate_on_grid(&grid_parameters).translation.truncate();
 
+        // assert!(grid_parameters.is_position_in_grid_bounds(restored_position), "restored_position:{restored_position} is not in grid bounds");
+        assert_eq!(grid_cell_position, restored_position, "cell_index: {cell_index_2d} :: original_grid_cell_position: {grid_cell_position} :: restored_position: {restored_position}");
 
-        assert_relative_eq!(original_position.x, restored_position.x);
-        assert_relative_eq!(original_position.y, restored_position.y);
-        println!("original_position: {original_position}, restored_position: {restored_position}");
-    }*/
+        println!("cell_index: {cell_index_2d} :: original_grid_cell_position: {grid_cell_position} :: restored_position: {restored_position} - OK!");
+    }
 }
