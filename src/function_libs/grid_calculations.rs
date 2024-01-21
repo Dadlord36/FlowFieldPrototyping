@@ -57,6 +57,15 @@ impl GridParameters {
     }
 
     #[inline]
+    pub fn calculate_cell_position(&self, cell_index: UVec2) -> Vec2 {
+        let cell_size = self.cell_size;
+        let grid_center = self.rect.center();
+
+        Vec2::new(grid_center.x - (self.grid_size.x / 2.0) + (cell_index.x as f32 * cell_size.x) + (cell_size.x / 2.0),
+                  grid_center.y - (self.grid_size.y / 2.0) + (cell_index.y as f32 * cell_size.y) + (cell_size.y / 2.0))
+    }
+
+    #[inline]
     pub fn calculate_indexes_limits_in_rang(&self, center_cell_index: UVec2, radius: u32) -> (UVec2, UVec2) {
         let min_x = center_cell_index.x.saturating_sub(radius);
         let min_y = center_cell_index.y.saturating_sub(radius);
@@ -68,30 +77,39 @@ impl GridParameters {
         let max_limit = UVec2::new(max_x, max_y);
         return (min_limit, max_limit);
     }
+
+    #[inline]
+    pub fn calculate_cell_index_from_position(&self, position: Vec2) -> UVec2 {
+        let grid_center = self.rect.center();
+
+        let cell_index_x = ((position.x + self.grid_size.x / 2.0 - grid_center.x) / self.cell_size.x).floor() as u32;
+        let cell_index_y = ((position.y + self.grid_size.y / 2.0 - grid_center.y) / self.cell_size.y).floor() as u32;
+
+        self.form_grid_bound_cell_index(cell_index_x, cell_index_y)
+    }
+
+    #[inline]
+    pub fn form_grid_bound_cell_index(&self, cell_index_x: u32, cell_index_y: u32) -> UVec2 {
+        UVec2::new(cell_index_x.clamp(0u32, self.max_column_index), cell_index_y.clamp(0u32, self.max_row_index))
+    }
+
+    pub fn is_cell_index_in_grid_bounds(&self, cell_index: UVec2) -> bool {
+        cell_index.x < self.column_number && cell_index.y < self.row_number
+    }
+
+    pub fn is_position_in_grid_bounds(&self, position: Vec2) -> bool {
+        self.rect.contains(position)
+    }
 }
 
+#[inline]
 pub fn calculate_2d_from_1d_index(grid_parameters: &GridParameters, index: u32) -> UVec2 {
     UVec2::new(index % grid_parameters.column_number, index / grid_parameters.column_number)
 }
 
+#[inline]
 pub fn calculate_1d_from_2d_index(grid_parameters: &GridParameters, index: UVec2) -> usize {
     ((index.x) + (index.y) * grid_parameters.column_number) as usize
-}
-
-pub fn calculate_cell_position(grid_parameters: &GridParameters, cell_index: UVec2) -> Vec2 {
-    let cell_size = grid_parameters.cell_size;
-    let grid_center = grid_parameters.rect.center();
-
-    Vec2::new(grid_center.x - (grid_parameters.grid_size.x / 2.0) + (cell_index.x as f32 * cell_size.x) + (cell_size.x / 2.0),
-              grid_center.y - (grid_parameters.grid_size.y / 2.0) + (cell_index.y as f32 * cell_size.y) + (cell_size.y / 2.0))
-}
-
-pub fn calculate_cell_index_from_position(grid_parameters: &GridParameters, position: Vec2) -> UVec2 {
-    let grid_center = grid_parameters.rect.center();
-    UVec2::new(
-        ((position.x + grid_parameters.grid_size.x / 2.0 - grid_center.x) / grid_parameters.cell_size.x).floor() as u32,
-        ((position.y + grid_parameters.grid_size.y / 2.0 - grid_center.y) / grid_parameters.cell_size.y).floor() as u32,
-    )
 }
 
 #[inline]

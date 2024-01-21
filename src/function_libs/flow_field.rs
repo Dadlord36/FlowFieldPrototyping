@@ -6,9 +6,9 @@ use rand::Rng;
 use crate::{
     components::{
         flow_field_components::{ExplosionParameters, FlowField},
-        grid_components::GridParameters
+        grid_components::GridParameters,
     },
-    function_libs::grid_calculations
+    function_libs::grid_calculations,
 };
 
 impl ExplosionParameters {
@@ -65,7 +65,10 @@ impl FlowField {
     }
 
     pub fn get_field_at(&self, grid_parameters: &GridParameters, cell_index: UVec2) -> Vec2 {
-        self.field[grid_calculations::calculate_1d_from_2d_index(grid_parameters, cell_index)]
+        let index = grid_calculations::calculate_1d_from_2d_index(grid_parameters, cell_index);
+        let array_length = self.field.len();
+        assert!(index < self.field.len(), "Index is out of bounds: {index}/{array_length}");
+        self.field[index]
     }
 
     //get a rotation angle in radians from flow direction at index
@@ -85,12 +88,12 @@ impl FlowField {
             for y in min_limit.y..=max_limit.y {
                 cell_index_2d.y = y;
 
-/*                let distance_to_center = explosion_parameters.impact_center_cell_index.as_vec2().distance(cell_index_2d.as_vec2());
-                if distance_to_center < impact_full_radius {*/
-                    let cel_index_1d = grid_calculations::calculate_1d_from_2d_index(grid_parameters, cell_index_2d);
-                    self.field[cel_index_1d] = apply_explosion_to_flow_vector(self.field[cel_index_1d],
-                                                                              cell_index_2d, explosion_parameters.impact_center_cell_index,
-                                                                              grid_parameters.cell_size, 0.9);
+                /*                let distance_to_center = explosion_parameters.impact_center_cell_index.as_vec2().distance(cell_index_2d.as_vec2());
+                                if distance_to_center < impact_full_radius {*/
+                let cel_index_1d = grid_calculations::calculate_1d_from_2d_index(grid_parameters, cell_index_2d);
+                self.field[cel_index_1d] = apply_explosion_to_flow_vector(self.field[cel_index_1d],
+                                                                          cell_index_2d, explosion_parameters.impact_center_cell_index,
+                                                                          grid_parameters.cell_size, 0.9);
                 // }
             }
         }

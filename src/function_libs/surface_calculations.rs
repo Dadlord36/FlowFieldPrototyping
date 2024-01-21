@@ -1,21 +1,18 @@
 use std::fmt::{Display, Formatter};
 
 use bevy::math::{Quat, UVec2, Vec2, Vec3};
-use bevy::prelude::{Component, Transform};
+use bevy::prelude::Transform;
 
-use crate::{
-    components::{
-        movement_components::{
-            self, SurfaceCoordinate, CoordinateBounds,
-        },
-        grid_components::{
-            GridParameters, GridRelatedData, GridCellData
-        },
+use crate::components::{
+    grid_components::GridParameters,
+    movement_components::{
+        CoordinateBounds, SurfaceCoordinate,
     },
-    function_libs::grid_calculations,
 };
 
-const COORDINATE_BOUNDS: CoordinateBounds = CoordinateBounds { min: -180.0, max: 180.0 };
+const MAX_BOUND_ANGLE: f32 = 180.0;
+const FULL_BOUND_ANGLE: f32 = MAX_BOUND_ANGLE * 2.0;
+const COORDINATE_BOUNDS: CoordinateBounds = CoordinateBounds { min: -MAX_BOUND_ANGLE, max: MAX_BOUND_ANGLE };
 
 
 impl Display for SurfaceCoordinate {
@@ -32,7 +29,6 @@ impl SurfaceCoordinate {
         self.latitude = value.clamp(COORDINATE_BOUNDS.min, COORDINATE_BOUNDS.max);
     }
 
-
     pub fn set_longitude(&mut self, value: f32) {
         self.longitude = value.clamp(COORDINATE_BOUNDS.min, COORDINATE_BOUNDS.max);
     }
@@ -45,45 +41,46 @@ impl SurfaceCoordinate {
 
     #[inline]
     pub fn calculate_cell_index_on_flat_surface(&self, grid_parameters: &GridParameters) -> UVec2 {
-        // convert SurfaceCoordinate [-180,180] to cell index, factoring in the origin of the rect.
-        let scale_x = (self.latitude - COORDINATE_BOUNDS.min) / (COORDINATE_BOUNDS.max - COORDINATE_BOUNDS.min);
-        let scale_y = (self.longitude - COORDINATE_BOUNDS.min) / (COORDINATE_BOUNDS.max - COORDINATE_BOUNDS.min);
+        // Scale factor for a single step in grid coordinates
+        let scale_factor = FULL_BOUND_ANGLE / (grid_parameters.max_column_index as f32);
 
-        // Using the calculated scale, find the corresponding cell index
-        let cell_index_x = (scale_x * grid_parameters.column_number as f32).floor() as u32;
-        let cell_index_y = (scale_y * grid_parameters.row_number as f32).floor() as u32;
+        let cell_index_x = (((self.latitude + MAX_BOUND_ANGLE) / scale_factor).round() as u32).min(grid_parameters.max_column_index);
+        let cell_index_y = (((self.longitude + MAX_BOUND_ANGLE) / scale_factor).round() as u32).min(grid_parameters.max_row_index);
 
-        UVec2::new(cell_index_x, cell_index_y)
+        grid_parameters.form_grid_bound_cell_index(cell_index_x, cell_index_y)
     }
 
     #[inline]
     pub fn calculate_flat_surface_coordinate_from(grid_parameters: &GridParameters, cell_index2d: UVec2) -> Self
     {
-        // convert cell index to SurfaceCoordinate that has range ofr longitude and latitude as [-180,180],
-        let latitude = 180.0 * (2.0 * (cell_index2d.x as f32 / grid_parameters.max_column_index as f32) - 1.0);
-        let longitude = 180.0 * (2.0 * (cell_index2d.y as f32 / grid_parameters.max_row_index as f32) - 1.0);
+        // Scale factor for a single step in grid coordinates
+        let scale_factor = FULL_BOUND_ANGLE / (grid_parameters.max_column_index as f32);
 
-        Self {
-            latitude,
-            longitude,
-        }
+        let latitude = cell_index2d.x as f32 * scale_factor - MAX_BOUND_ANGLE;
+        let longitude = cell_index2d.y as f32 * scale_factor - MAX_BOUND_ANGLE;
+
+        Self { latitude, longitude }
     }
 
     #[inline]
-    pub fn calculate_flat_surface_coordinate_from_pos(grid_parameters: &GridParameters, world_position: Vec2) -> Self{
-        let hovered_cell_index = grid_calculations::calculate_cell_index_from_position(grid_parameters, world_position);
+    pub fn calculate_flat_surface_coordinate_from_pos(grid_parameters: &GridParameters, world_position: Vec2) -> Self {
+        let hovered_cell_index = grid_parameters.calculate_cell_index_from_position(world_position);
         return SurfaceCoordinate::calculate_flat_surface_coordinate_from(grid_parameters, hovered_cell_index);
     }
 
     #[inline]
     pub fn project_surface_coordinate_on_grid(&self, grid: &GridParameters) -> Transform {
-        // Normalize the coordinates, converting them from [-180, 180] to [0, 1]
-        // Then multiply by grid size to convert them into world coordinates
-        let normalized_latitude = (self.latitude + 180.0) / 360.0;
-        let normalized_longitude = (self.longitude + 180.0) / 360.0;
+        // MAX_BOUND_ANGLE is 180.0 and FULL_BOUND_ANGLE is 360.0
+        // Convert [-180, 180] to [0, 360] and then find the proportional position within the grid
+        let grid_width = grid.rect.width() - 1.0;
+        let grid_height = grid.rect.height() - 1.0;
 
-        let x = normalized_latitude * grid.rect.width() + grid.rect.min.x;
-        let y = normalized_longitude * grid.rect.height() + grid.rect.min.y;
+        let proportional_latitude = (self.latitude + MAX_BOUND_ANGLE) * grid_width / FULL_BOUND_ANGLE;
+        let proportional_longitude = (self.longitude + MAX_BOUND_ANGLE) * grid_height / FULL_BOUND_ANGLE;
+
+        // Adjust the proportional position with the grid offset and add half cell size to move the position to the cell center
+        let x = proportional_latitude + grid.rect.min.x + grid.cell_size.x / 2.0;
+        let y = proportional_longitude + grid.rect.min.y + grid.cell_size.y / 2.0;
 
         let position = Vec2::new(x, y);  // z is 0 for a flat surface
 

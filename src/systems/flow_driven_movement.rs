@@ -11,10 +11,10 @@ use crate::{
         },
         movement_components::{
             MoveTag,
-            SurfaceCoordinate
-        }
+            SurfaceCoordinate,
+        },
     },
-    components::flow_field_components::FlowField
+    components::flow_field_components::FlowField,
 };
 
 pub fn spawn_moving_cubes(mut commands: Commands, grid_parameters: Res<GridParameters>)
@@ -27,15 +27,17 @@ pub fn spawn_moving_cubes(mut commands: Commands, grid_parameters: Res<GridParam
 
     let color = Color::ORANGE;
 
-    for y in 0..24 {
+    for y in 0..rows_num {
         cell_index.y = y;
+
 
         let coordinate = SurfaceCoordinate::calculate_flat_surface_coordinate_from(&grid_parameters, cell_index);
         let mut coordinate_world_transform = coordinate.project_surface_coordinate_on_grid(&grid_parameters);
         coordinate_world_transform.translation.z = 2.0;
+        // coordinate_world_transform.translation = grid_parameters.calculate_cell_position(cell_index).extend(2.0);
 
         commands.spawn(SurfaceWalkerBundle {
-            surface_coordinate: coordinate.clone(),
+            surface_coordinate: coordinate,
             occupied_cell_index: CellIndex::from(cell_index),
             sprite_bundle: SpriteBundle {
                 sprite: Sprite {
@@ -76,8 +78,8 @@ pub fn grid_relation_system(grid_parameters: Res<GridParameters>,
                                 With<MoveTag>>)
 {
     for (mut cell_index, surface_calculations, transform) in query.iter_mut() {
-
-        cell_index.index = surface_calculations.calculate_cell_index_on_flat_surface(&grid_parameters);
+        // cell_index.index = grid_parameters.calculate_cell_index_from_position(transform.translation.truncate());
+        surface_calculations.calculate_cell_index_on_flat_surface(&grid_parameters);
     }
 }
 

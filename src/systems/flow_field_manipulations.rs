@@ -13,7 +13,7 @@ use bevy_prototype_lyon::{
 use crate::{
     function_libs::{
         grid_calculations::{
-            calculate_cell_index_from_position, calculate_cell_position,
+            self
         },
     },
     components::{
@@ -26,15 +26,15 @@ use crate::{
             GridParameters,
             CellIndex,
         },
-        world_manipulation_components::CursorWorldPosition
-    }
+        world_manipulation_components::CursorWorldPosition,
+    },
 };
 
 pub fn visualize_flow_system(mut _commands: Commands, grid_parameter: Res<GridParameters>, flow_field: Res<FlowField>) {
     // Create a new PathBuilder for the arrow shape
     for (col, row) in grid_parameter.coordinates() {
         let coordinate = UVec2::new(col, row);
-        let cell_position = calculate_cell_position(&grid_parameter, coordinate).extend(0.0);
+        let cell_position = grid_parameter.calculate_cell_position(coordinate).extend(0.0);
         let mut new_transform = Transform::from_xyz(cell_position.x, cell_position.y, cell_position.z);
 
         new_transform.rotation = Quat::from_rotation_z(flow_field.get_rotation_angle_at(&grid_parameter, coordinate));
@@ -65,7 +65,7 @@ pub fn flow_explosion_system(input: Res<Input<MouseButton>>, cursor_world_positi
         info!("LMB was pressed!");
 
         let world_pos = cursor_world_position.position;
-        let hovered_cell_index = calculate_cell_index_from_position(&grid_parameters, world_pos);
+        let hovered_cell_index = grid_parameters.calculate_cell_index_from_position(world_pos);
         flow_field.apply_smooth_explosion(&grid_parameters, ExplosionParameters::new(hovered_cell_index, 4.0));
     }
 }
