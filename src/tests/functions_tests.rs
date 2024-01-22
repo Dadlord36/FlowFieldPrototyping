@@ -67,11 +67,10 @@ fn test_surface_coord_to_occupied_cell_index_conversion() {
 
     for (col, row) in grid_parameters.coordinates() {
         let cell_index_2d = UVec2::new(col, row);
-        assert!(grid_parameters.is_cell_index_in_grid_bounds(cell_index_2d), "cell_index_2d:{cell_index_2d} is not in grid bounds");
-
         let coordinate = SurfaceCoordinate::calculate_flat_surface_coordinate_from(&grid_parameters, cell_index_2d);
         let restored_index = coordinate.calculate_cell_index_on_flat_surface(&grid_parameters);
 
+        assert!(grid_parameters.is_cell_index_in_grid_bounds(cell_index_2d), "cell_index_2d:{cell_index_2d} is not in grid bounds");
         assert!(grid_parameters.is_cell_index_in_grid_bounds(restored_index), "restored_index:{restored_index} is not in grid bounds");
 
         assert_eq!(cell_index_2d, restored_index, "original_index: {cell_index_2d}, coordinate: {coordinate}, restored_index: {restored_index}");

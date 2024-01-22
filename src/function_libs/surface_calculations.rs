@@ -39,8 +39,8 @@ impl SurfaceCoordinate {
 
     #[inline]
     pub fn calculate_cell_index_on_flat_surface(&self, grid_parameters: &GridParameters) -> UVec2 {
-        let cell_index_x: u32 = (self.latitude * grid_parameters.max_column_index as f64) as u32;
-        let cell_index_y: u32 = (self.longitude * grid_parameters.max_row_index as f64) as u32;
+        let cell_index_x: u32 = (self.latitude * grid_parameters.max_column_index as f64).round() as u32;
+        let cell_index_y: u32 = (self.longitude * grid_parameters.max_row_index as f64).round() as u32;
         grid_parameters.form_grid_bound_cell_index(cell_index_x, cell_index_y)
     }
 

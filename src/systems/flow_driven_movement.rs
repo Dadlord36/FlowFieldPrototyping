@@ -8,7 +8,7 @@ use crate::{
     bundles::movables::SurfaceWalkerBundle,
     components::{
         grid_components::{
-            GridParameters, GridRelatedData, CellIndex,
+            CellIndex, GridParameters, GridRelatedData,
         },
         movement_components::{
             MoveTag,
@@ -31,11 +31,9 @@ pub fn spawn_moving_cubes(mut commands: Commands, grid_parameters: Res<GridParam
     for y in 0..rows_num {
         cell_index.y = y;
 
-
         let coordinate = SurfaceCoordinate::calculate_flat_surface_coordinate_from(&grid_parameters, cell_index);
         let mut coordinate_world_transform = coordinate.project_surface_coordinate_on_grid(&grid_parameters);
-        coordinate_world_transform.translation.z = 2.0;
-        // coordinate_world_transform.translation = grid_parameters.calculate_cell_position(cell_index).extend(2.0);
+        coordinate_world_transform.translation.z = 10.0;
 
         commands.spawn(SurfaceWalkerBundle {
             surface_coordinate: coordinate,
@@ -57,10 +55,10 @@ pub fn spawn_moving_cubes(mut commands: Commands, grid_parameters: Res<GridParam
 pub fn adjust_coordinate_system(time: Res<Time>, flow_field: Res<FlowField>, grid_parameters: Res<GridParameters>,
                                 mut query: Query<(&mut SurfaceCoordinate, &CellIndex), With<MoveTag>>)
 {
-    let delta:f64 = (0.1 * time.delta_seconds()) as f64;
+    let delta: f64 = (0.1 * time.delta_seconds()) as f64;
 
     for (mut surface_calculations, cell_index) in query.iter_mut() {
-        let direction:DVec2 = DVec2::from(flow_field.get_field_at(&grid_parameters, cell_index.index));
+        let direction: DVec2 = DVec2::from(flow_field.get_field_at(&grid_parameters, cell_index.index));
 
         surface_calculations.adjust_coordinate(direction * delta);
     }
@@ -75,12 +73,11 @@ pub fn apply_surface_coordinate_system(grid_parameters: Res<GridParameters>,
 }
 
 pub fn grid_relation_system(grid_parameters: Res<GridParameters>,
-                            mut query: Query<(&mut CellIndex, &SurfaceCoordinate, &Transform),
+                            mut query: Query<(&mut CellIndex, &SurfaceCoordinate),
                                 With<MoveTag>>)
 {
-    for (mut cell_index, surface_calculations, transform) in query.iter_mut() {
-        // cell_index.index = grid_parameters.calculate_cell_index_from_position(transform.translation.truncate());
-        surface_calculations.calculate_cell_index_on_flat_surface(&grid_parameters);
+    for (mut cell_index, surface_calculations) in query.iter_mut() {
+        cell_index.index = surface_calculations.calculate_cell_index_on_flat_surface(&grid_parameters);
     }
 }
 
