@@ -1,5 +1,7 @@
 use std::cmp::min;
+
 use bevy::math::{Rect, UVec2, Vec2};
+
 use crate::components::grid_components::{GridCellData, GridParameters, GridRelatedData};
 
 impl GridRelatedData {

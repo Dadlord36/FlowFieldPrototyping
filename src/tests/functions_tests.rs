@@ -1,14 +1,18 @@
-use approx::assert_relative_eq;
-use bevy::log::info;
-use bevy::math::UVec2;
-use bevy::prelude::Vec2;
+use bevy::math::{Rect, UVec2};
+use bevy::prelude::*;
 
 use crate::{
     components::{
         grid_components::GridParameters,
-        movement_components::SurfaceCoordinate,
+        movement_components::{
+            SurfaceCoordinate,
+            Maneuver,
+        },
     },
-    function_libs::grid_calculations,
+    function_libs::{
+        grid_calculations,
+        pathfinding_calculations::{self},
+    },
 };
 
 fn construct_default_grid() -> GridParameters {
@@ -97,4 +101,45 @@ fn test_coordinate_to_position_on_grid_conversion()
 
         println!("cell_index: {cell_index_2d} :: original_grid_cell_position: {grid_cell_position} :: restored_position: {restored_position} - OK!");
     }
+}
+
+#[test]
+fn test_bezier_interpolate() {
+    let grid_parameters: GridParameters = construct_default_grid();
+    // Define your Transform points here
+    let transforms: Vec<Transform> =
+        vec![Transform::from_translation(grid_parameters.calculate_cell_position(UVec2::new(0, 0)).extend(0.0)),
+             Transform::from_translation(grid_parameters.calculate_cell_position(UVec2::new(3, 3)).extend(0.0)),
+             Transform::from_translation(grid_parameters.calculate_cell_position(UVec2::new(4, 4)).extend(0.0)),
+             Transform::from_translation(grid_parameters.calculate_cell_position(UVec2::new(5, 3)).extend(0.0)),
+             Transform::from_translation(grid_parameters.calculate_cell_position(UVec2::new(8, 0)).extend(0.0))];
+
+    let maneuver = Maneuver::new(transforms.clone());
+
+    // Construct the bounding rectangle
+    let min_corner = transforms.iter().fold(
+        Vec2::new(f32::MAX, f32::MAX),
+        |min, transform| Vec2::new(transform.translation.x.min(min.x), transform.translation.y.min(min.y)),
+    );
+    let max_corner = transforms.iter().fold(
+        Vec2::new(f32::MIN, f32::MIN),
+        |max, transform| Vec2::new(transform.translation.x.max(max.x), transform.translation.y.max(max.y)),
+    );
+
+    // execute bezier_interpolate function
+    let output = maneuver.interpolate_along_path(0.5).translation.truncate();
+
+    let rect = Rect::from_corners(min_corner, max_corner);
+
+    println!("Transforms:");
+    for (transform) in transforms.iter() {
+        let point = transform.translation.truncate();
+        println!("{point}")
+    }
+    let grid_physical_size = grid_parameters.rect.size();
+    println!("Grid Physical Size: {grid_physical_size}");
+    println!("{:?}", rect);
+
+    // Check if the output is within the bounds
+    assert!(rect.contains(output), "Output location is out of bounds. bezier interpolation output: {output}");
 }

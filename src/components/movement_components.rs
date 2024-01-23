@@ -1,4 +1,6 @@
-use bevy::prelude::{Bundle, Component};
+use bevy::prelude::{Bundle, Component, Transform};
+
+pub type Coordinate = f32;
 
 #[derive(Copy, Clone)]
 pub enum Direction {
@@ -11,6 +13,9 @@ pub enum Direction {
     West,
     NorthWest,
 }
+
+#[derive(Component, Clone, Default)]
+pub struct MoveTag;
 
 impl Direction {
     fn as_usize(&self) -> usize {
@@ -30,17 +35,18 @@ const DIRECTIONS: [(i8, i8); 8] = [
 ];
 
 #[derive(Component, Clone, Default)]
-pub struct MoveTag;
-
-#[derive(Component, Clone, Default)]
 pub struct SurfaceCoordinate {
-    pub latitude: f64,
-    pub longitude: f64,
+    pub latitude: Coordinate,
+    pub longitude: Coordinate,
 }
 
 pub struct CoordinateBounds {
-    pub min: f64,
-    pub max: f64,
+    pub min: Coordinate,
+    pub max: Coordinate,
 }
 
-
+#[derive(Component,Default)]
+pub struct Maneuver {
+   pub(crate) path_points: Vec<Transform>,
+   pub progress: f32
+}

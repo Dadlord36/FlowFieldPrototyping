@@ -40,7 +40,7 @@ pub fn mouse_hover_system(mut cursor_moved_events: EventReader<CursorMoved>, cur
         let cells_in_range = grid_calculations::calculate_indexes_in_circle_from_index(&grid_parameters,
                                                                                        hovered_cell_index, 3);
         for cell_index in cells_in_range {
-            let mut cell_data = grid_cell_data.get_data_at_mut(&grid_parameters, cell_index);
+            let cell_data = grid_cell_data.get_data_at_mut(&grid_parameters, cell_index);
             if cell_data.is_none() {
                 warn!("Cell data is invalid!");
                 continue;
