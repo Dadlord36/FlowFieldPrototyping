@@ -71,7 +71,7 @@ fn test_surface_coord_to_occupied_cell_index_conversion() {
 
     for (col, row) in grid_parameters.coordinates() {
         let cell_index_2d = UVec2::new(col, row);
-        let coordinate = SurfaceCoordinate::calculate_flat_surface_coordinate_from(&grid_parameters, cell_index_2d);
+        let coordinate = grid_parameters.calculate_flat_surface_coordinate_from(cell_index_2d);
         let restored_index = coordinate.calculate_cell_index_on_flat_surface(&grid_parameters);
 
         assert!(grid_parameters.is_cell_index_in_grid_bounds(cell_index_2d), "cell_index_2d:{cell_index_2d} is not in grid bounds");
@@ -93,7 +93,7 @@ fn test_coordinate_to_position_on_grid_conversion()
         let grid_cell_position = grid_parameters.calculate_cell_position(cell_index_2d);
         // assert!(grid_parameters.is_position_in_grid_bounds(grid_cell_position), "grid_cell_position {grid_cell_position} is out of the grid bounds.");
 
-        let coordinate = SurfaceCoordinate::calculate_flat_surface_coordinate_from(&grid_parameters, cell_index_2d);
+        let coordinate = grid_parameters.calculate_flat_surface_coordinate_from(cell_index_2d);
         let restored_position = coordinate.project_surface_coordinate_on_grid(&grid_parameters).translation.truncate();
 
         // assert!(grid_parameters.is_position_in_grid_bounds(restored_position), "restored_position:{restored_position} is not in grid bounds");
@@ -106,34 +106,39 @@ fn test_coordinate_to_position_on_grid_conversion()
 #[test]
 fn test_bezier_interpolate() {
     let grid_parameters: GridParameters = construct_default_grid();
-    // Define your Transform points here
-    let transforms: Vec<Transform> =
-        vec![Transform::from_translation(grid_parameters.calculate_cell_position(UVec2::new(0, 0)).extend(0.0)),
-             Transform::from_translation(grid_parameters.calculate_cell_position(UVec2::new(3, 3)).extend(0.0)),
-             Transform::from_translation(grid_parameters.calculate_cell_position(UVec2::new(4, 4)).extend(0.0)),
-             Transform::from_translation(grid_parameters.calculate_cell_position(UVec2::new(5, 3)).extend(0.0)),
-             Transform::from_translation(grid_parameters.calculate_cell_position(UVec2::new(8, 0)).extend(0.0))];
+    // Define your points here
+    let maneuver_points =
+        vec![grid_parameters.calculate_flat_surface_coordinate_from(UVec2::new(0, 0)),
+             grid_parameters.calculate_flat_surface_coordinate_from(UVec2::new(0, 1)),
+             grid_parameters.calculate_flat_surface_coordinate_from(UVec2::new(1, 1)),
+             grid_parameters.calculate_flat_surface_coordinate_from(UVec2::new(1, 0))];
 
-    let maneuver = Maneuver::new(transforms.clone());
+    let mut maneuver = Maneuver::new(maneuver_points.clone());
 
     // Construct the bounding rectangle
-    let min_corner = transforms.iter().fold(
+    let min_corner = maneuver_points.iter().fold(
         Vec2::new(f32::MAX, f32::MAX),
-        |min, transform| Vec2::new(transform.translation.x.min(min.x), transform.translation.y.min(min.y)),
+        |min, coordinate| {
+            let point = coordinate.project_surface_coordinate_on_grid(&grid_parameters).translation.truncate();
+            point.min(min)
+        },
     );
-    let max_corner = transforms.iter().fold(
+    let max_corner = maneuver_points.iter().fold(
         Vec2::new(f32::MIN, f32::MIN),
-        |max, transform| Vec2::new(transform.translation.x.max(max.x), transform.translation.y.max(max.y)),
+        |max, coordinate| {
+            let point = coordinate.project_surface_coordinate_on_grid(&grid_parameters).translation.truncate();
+            point.max(max)
+        },
     );
 
     // execute bezier_interpolate function
-    let output = maneuver.interpolate_along_path(0.5).translation.truncate();
+    let output = maneuver.catmull_rom_interpolate_along_path(0.5).project_surface_coordinate_on_grid(&grid_parameters).translation.truncate();
 
-    let rect = Rect::from_corners(min_corner, max_corner);
+    let rect = Rect::from_corners(min_corner - grid_parameters.cell_size / 2.0, max_corner + grid_parameters.cell_size / 2.0);
 
-    println!("Transforms:");
-    for (transform) in transforms.iter() {
-        let point = transform.translation.truncate();
+    println!("Points:");
+    for (coordinate) in maneuver_points.iter() {
+        let point = coordinate.project_surface_coordinate_on_grid(&grid_parameters).translation.truncate();
         println!("{point}")
     }
     let grid_physical_size = grid_parameters.rect.size();

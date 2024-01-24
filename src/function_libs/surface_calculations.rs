@@ -48,17 +48,9 @@ impl SurfaceCoordinate {
     }
 
     #[inline]
-    pub fn calculate_flat_surface_coordinate_from(grid_parameters: &GridParameters, cell_index2d: UVec2) -> Self
-    {
-        let latitude = cell_index2d.x as Coordinate / grid_parameters.max_column_index as Coordinate;
-        let longitude = cell_index2d.y as Coordinate / grid_parameters.max_row_index as Coordinate;
-        Self { latitude, longitude }
-    }
-
-    #[inline]
     pub fn calculate_flat_surface_coordinate_from_pos(grid_parameters: &GridParameters, world_position: Vec2) -> Self {
         let hovered_cell_index = grid_parameters.calculate_cell_index_from_position(world_position);
-        return SurfaceCoordinate::calculate_flat_surface_coordinate_from(grid_parameters, hovered_cell_index);
+        return grid_parameters.calculate_flat_surface_coordinate_from(hovered_cell_index);
     }
 
     #[inline]
@@ -71,7 +63,7 @@ impl SurfaceCoordinate {
         let position = Vec2::new(proportional_latitude as f32, proportional_longitude as f32);
 
         let transform = Transform {
-            translation: position.extend(0.0),
+            translation: position.extend(10.0),
             rotation: Quat::IDENTITY,  // No rotation
             scale: Vec3::ONE,  // No scaling
         };

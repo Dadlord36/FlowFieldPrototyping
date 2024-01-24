@@ -1,4 +1,4 @@
-use bevy::prelude::{Bundle, Component, Transform};
+use bevy::prelude::{Bundle, Component, Transform, Vec2};
 
 pub type Coordinate = f32;
 
@@ -34,10 +34,16 @@ const DIRECTIONS: [(i8, i8); 8] = [
     (-1, -1), // North-West
 ];
 
-#[derive(Component, Clone, Default)]
+#[derive(Component, Clone, Copy, Default)]
 pub struct SurfaceCoordinate {
     pub latitude: Coordinate,
     pub longitude: Coordinate,
+}
+
+impl From<SurfaceCoordinate> for Vec2 {
+    fn from(value: SurfaceCoordinate) -> Self {
+        Vec2::new(value.latitude, value.longitude)
+    }
 }
 
 pub struct CoordinateBounds {
@@ -45,8 +51,8 @@ pub struct CoordinateBounds {
     pub max: Coordinate,
 }
 
-#[derive(Component,Default)]
+#[derive(Component, Default)]
 pub struct Maneuver {
-   pub(crate) path_points: Vec<Transform>,
-   pub progress: f32
+    pub(crate) path_points: Vec<SurfaceCoordinate>,
+    pub progress: f32,
 }

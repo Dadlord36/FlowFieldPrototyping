@@ -67,8 +67,8 @@ fn main() {
         .add_systems(Startup, (setup, spawned_colorized_cells_system, visualize_flow_system, reset_cells_colorization,
                                spawn_dummy_path_driven_actor).chain())
         .add_systems(PreUpdate, (reset_cells_colorization, capture_cursor_position, mouse_hover_system,
-                                /* adjust_coordinate_system, apply_surface_coordinate_system,*/
-                                 path_movement_system,
+                                /* adjust_coordinate_system,*/
+                                 path_movement_system,apply_surface_coordinate_system,
                                  grid_relation_system).chain())
         .add_systems(Update, (cell_occupation_highlight_system, apply_color_to_cell).chain())
         .add_systems(Update, (flow_explosion_system, rotate_flow_arrows_system).chain())

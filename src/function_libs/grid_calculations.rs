@@ -2,7 +2,12 @@ use std::cmp::min;
 
 use bevy::math::{Rect, UVec2, Vec2};
 
-use crate::components::grid_components::{GridCellData, GridParameters, GridRelatedData};
+use crate::{
+    components::{
+        grid_components::{GridCellData, GridParameters, GridRelatedData},
+        movement_components::{Coordinate, SurfaceCoordinate}
+    }
+};
 
 impl GridRelatedData {
     pub fn new(grid_parameters: &GridParameters) -> Self {
@@ -93,6 +98,14 @@ impl GridParameters {
     #[inline]
     pub fn form_grid_bound_cell_index(&self, cell_index_x: u32, cell_index_y: u32) -> UVec2 {
         UVec2::new(cell_index_x.clamp(0u32, self.max_column_index), cell_index_y.clamp(0u32, self.max_row_index))
+    }
+
+    #[inline]
+    pub fn calculate_flat_surface_coordinate_from(&self, cell_index2d: UVec2) -> SurfaceCoordinate
+    {
+        let latitude = cell_index2d.x as Coordinate / self.max_column_index as Coordinate;
+        let longitude = cell_index2d.y as Coordinate / self.max_row_index as Coordinate;
+        SurfaceCoordinate { latitude, longitude }
     }
 
     pub fn is_cell_index_in_grid_bounds(&self, cell_index: UVec2) -> bool {

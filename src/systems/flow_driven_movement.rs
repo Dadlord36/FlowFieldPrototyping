@@ -1,8 +1,8 @@
 use bevy::{
     math::{
+        DVec2,
         UVec2,
         Vec2,
-        DVec2,
     },
     prelude::*,
 };
@@ -30,7 +30,6 @@ pub fn spawn_moving_cubes(mut commands: Commands, grid_parameters: Res<GridParam
     let mut cell_index = UVec2::new(columns_num - 1, 0);
     let color = Color::ORANGE;
 
-
     for y in 0..rows_num {
         cell_index.y = y;
 
@@ -44,25 +43,26 @@ pub fn spawn_dummy_path_driven_actor(mut commands: Commands, grid_parameters: Re
     let (coordinate, coordinate_world_transform, actor_size) =
         calculate_coordination_data(&grid_parameters, cell_index);
 
+/*    let maneuver_points =
+        vec![grid_parameters.calculate_flat_surface_coordinate_from(UVec2::new(0, 0)),
+             grid_parameters.calculate_flat_surface_coordinate_from(UVec2::new(0, 1)),
+             grid_parameters.calculate_flat_surface_coordinate_from(UVec2::new(1, 1)),
+             grid_parameters.calculate_flat_surface_coordinate_from(UVec2::new(1, 0))];*/
 
-    let maneuver_points =
-        vec![Transform::from_translation(grid_parameters.calculate_cell_position(UVec2::new(0, 0)).extend(10.0)),
-             Transform::from_translation(grid_parameters.calculate_cell_position(UVec2::new(0, 1)).extend(10.0)),
-             Transform::from_translation(grid_parameters.calculate_cell_position(UVec2::new(1, 1)).extend(10.0)),
-             Transform::from_translation(grid_parameters.calculate_cell_position(UVec2::new(1, 0)).extend(10.0))];
+    let maneuver = Maneuver::zigzag(&grid_parameters);
 
-    for maneuver_point in maneuver_points.iter() {
+/*    for maneuver_point in maneuver.path_points.iter() {
         commands.spawn(SpriteBundle {
             sprite: Sprite {
                 color: Color::AZURE,
                 custom_size: Some(actor_size),
                 ..Default::default()
             },
-            transform: maneuver_point.clone(),
+            transform: maneuver_point.project_surface_coordinate_on_grid(&grid_parameters),
             ..Default::default()
         }
         );
-    }
+    }*/
 
     commands.spawn(SurfaceWalkerBundle {
         surface_coordinate: coordinate,
@@ -77,7 +77,7 @@ pub fn spawn_dummy_path_driven_actor(mut commands: Commands, grid_parameters: Re
             ..Default::default()
         },
         ..Default::default()
-    }).insert(Maneuver::new(maneuver_points));
+    }).insert(maneuver);
 }
 
 fn spawn_movable_actor_on_grid(mut commands: &mut Commands, grid_parameters: &Res<GridParameters>, cell_index: UVec2, color: Color) {
@@ -87,7 +87,7 @@ fn spawn_movable_actor_on_grid(mut commands: &mut Commands, grid_parameters: &Re
 }
 
 fn calculate_coordination_data(grid_parameters: &Res<GridParameters>, cell_index: UVec2) -> (SurfaceCoordinate, Transform, Vec2) {
-    let coordinate = SurfaceCoordinate::calculate_flat_surface_coordinate_from(&grid_parameters, cell_index);
+    let coordinate = grid_parameters.calculate_flat_surface_coordinate_from(cell_index);
     let mut coordinate_world_transform = coordinate.project_surface_coordinate_on_grid(&grid_parameters);
     coordinate_world_transform.translation.z = 10.0;
     let actor_size: Vec2 = grid_parameters.cell_size / 2.0;
@@ -128,23 +128,26 @@ pub fn adjust_coordinate_system(time: Res<Time>, flow_field: Res<FlowField>, gri
 pub fn apply_surface_coordinate_system(grid_parameters: Res<GridParameters>,
                                        mut query: Query<(&mut Transform, &SurfaceCoordinate),
                                            With<MoveTag>>) {
-    for (mut transform, surface_calculations) in query.iter_mut() {
-        *transform = surface_calculations.project_surface_coordinate_on_grid(&grid_parameters);
+    for (mut transform, coordinate) in query.iter_mut() {
+        *transform = coordinate.project_surface_coordinate_on_grid(&grid_parameters);
     }
 }
 
-pub fn path_movement_system(mut commands: Commands, time: Res<Time>, mut query: Query<(Entity, &mut Transform, &mut Maneuver), With<MoveTag>>) {
-    for (entity,mut transform, mut maneuver) in query.iter_mut() {
-        *transform = maneuver.interpolate_along_path(time.delta_seconds() * 1.0);
-        if maneuver.is_done(){
+pub fn path_movement_system(mut commands: Commands, time: Res<Time>, mut query: Query<(Entity, &mut SurfaceCoordinate, &mut Maneuver), With<MoveTag>>) {
+    for (entity, mut coordinate, mut maneuver) in query.iter_mut() {
+        *coordinate = maneuver.catmull_rom_interpolate_along_path_ping_pong(time.elapsed_seconds() * 0.01);
+ /*       if maneuver.is_done() {
             commands.entity(entity).remove::<Maneuver>();
-        }
+        }*/
     }
 }
+
+/*pub fn movement_avoidance_system(mut query: Query<()>) {
+
+}*/
 
 pub fn grid_relation_system(grid_parameters: Res<GridParameters>,
-                            mut query: Query<(&mut CellIndex, &SurfaceCoordinate),
-                                With<MoveTag>>)
+                            mut query: Query<(&mut CellIndex, &SurfaceCoordinate), With<MoveTag>>)
 {
     for (mut cell_index, surface_calculations) in query.iter_mut() {
         cell_index.index = surface_calculations.calculate_cell_index_on_flat_surface(&grid_parameters);
