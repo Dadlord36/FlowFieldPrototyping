@@ -1,9 +1,11 @@
-use bevy::math::{UVec2, Vec2};
-use bevy::prelude::{Color, Commands, Query, Res, ResMut, Sprite, SpriteBundle, Transform, With};
+use bevy::{
+    math::{UVec2, Vec2},
+    prelude::{Color, Commands, Res, Transform},
+    sprite::{Sprite, SpriteBundle}
+};
+use game_types::components::grid_components::{CellIndex, CellIndex2d, Grid2D, GridCellTag};
 
-use crate::components::grid_components::{CellIndex, GridCellTag, GridParameters, GridRelatedData};
-
-pub fn spawned_colorized_cells_system(mut commands: Commands, grid_parameter: Res<GridParameters>)
+pub fn spawned_colorized_cells_system(mut commands: Commands, grid_parameter: Res<Grid2D>)
 {
     let columns_num = grid_parameter.column_number;
     let rows_num = grid_parameter.row_number;
@@ -20,7 +22,7 @@ pub fn spawned_colorized_cells_system(mut commands: Commands, grid_parameter: Re
     let mut color2 = Color::GRAY;
     color2.set_a(0.2);
 
-    for (col, row) in grid_parameter.coordinates() {
+    for (col, row) in grid_parameter.iterate_coordinates() {
         let color = if (col + row) % 2 == 0 { color1 } else { color2 };
 
         // Adjust the cell's position so the grid is centered at (0, 0)
@@ -35,31 +37,6 @@ pub fn spawned_colorized_cells_system(mut commands: Commands, grid_parameter: Re
             },
             transform: Transform::from_translation(position.extend(0.0)),
             ..Default::default()
-        }).insert(GridCellTag).insert(CellIndex::from(UVec2::new(col, row)));
-    }
-}
-
-pub fn reset_cells_colorization(grid_parameters: Res<GridParameters>, mut grid_cell_data: ResMut<GridRelatedData>) {
-    let mut color1 = Color::YELLOW_GREEN;
-    color1.set_a(0.2);
-    let mut color2 = Color::GRAY;
-    color2.set_a(0.2);
-
-    for (i, j) in grid_parameters.coordinates() {
-        let color = if (i + j) % 2 == 0 { color1 } else { color2 };
-        let index = UVec2::new(i, j);
-
-        grid_cell_data.get_data_at_mut(&grid_parameters, index).unwrap().color = color;
-    }
-}
-
-pub fn apply_color_to_cell(grid_parameters: Res<GridParameters>, grid_cell_data: Res<GridRelatedData>,
-                           mut cells_query: Query<(&CellIndex, &mut Sprite), With<GridCellTag>>) {
-    for (cell_index, mut sprite) in cells_query.iter_mut() {
-        let cell_data = grid_cell_data.get_data_at(&grid_parameters, cell_index.index);
-        if cell_data.is_none() {
-            continue;
-        };
-        sprite.color = cell_data.unwrap().color;
+        }).insert(GridCellTag).insert(CellIndex::new(CellIndex2d::from(UVec2::new(col, row))));
     }
 }

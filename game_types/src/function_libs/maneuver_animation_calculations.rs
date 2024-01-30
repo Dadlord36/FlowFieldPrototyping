@@ -1,8 +1,14 @@
-use bevy::math::{Quat, Vec3};
-use bevy::prelude::{Transform, UVec2, Vec2};
-use crate::components::grid_components::GridParameters;
+use bevy::{
+    math::{Quat, Vec3},
+    prelude::{Transform, UVec2, Vec2}
+};
+use crate::{
+    components::{
+        grid_components::{CellIndex2d, Grid2D},
+        movement_components::{Maneuver, SurfaceCoordinate}
+    }
+};
 
-use crate::components::movement_components::{Maneuver, SurfaceCoordinate};
 
 impl Maneuver {
     pub fn new(surface_coordinates: Vec<SurfaceCoordinate>) -> Self {
@@ -12,25 +18,64 @@ impl Maneuver {
         }
     }
 
-    pub fn zigzag(grid_parameters: &GridParameters) -> Self{
+    pub fn zigzag(grid_parameters: &Grid2D) -> Self {
         let mut maneuver_points = vec![];
 
         for i in 0..25 {
             if i % 2 == 0 {
                 for j in 0..25 {
-                    maneuver_points.push(grid_parameters.calculate_flat_surface_coordinate_from(UVec2::new(i, j)));
+                    maneuver_points.push(grid_parameters.calculate_flat_surface_coordinate_from(CellIndex2d::new(i, j)));
                 }
             } else {
                 for j in (0..25).rev() {
-                    maneuver_points.push(grid_parameters.calculate_flat_surface_coordinate_from(UVec2::new(i, j)));
+                    maneuver_points.push(grid_parameters.calculate_flat_surface_coordinate_from(CellIndex2d::new(i, j)));
                 }
             }
         }
         maneuver_points.shrink_to_fit();
 
-        Maneuver{
+        Maneuver {
             path_points: maneuver_points,
-            progress: 0.0
+            progress: 0.0,
+        }
+    }
+
+    pub fn spiral(grid_parameters: &Grid2D) -> Self {
+        let mut maneuver_points = vec![];
+        let mut x_start = 0;
+        let mut x_end = grid_parameters.column_number as i32 - 1;
+        let mut y_start = 0;
+        let mut y_end = grid_parameters.row_number as i32 - 1;
+
+        while x_start <= x_end && y_start <= y_end {
+            for i in y_start..=y_end {
+                maneuver_points.push(grid_parameters.calculate_flat_surface_coordinate_from(CellIndex2d::new(x_start, i)));
+            }
+            x_start += 1;
+
+            for i in x_start..=x_end {
+                maneuver_points.push(grid_parameters.calculate_flat_surface_coordinate_from(CellIndex2d::new(i, y_end)));
+            }
+            y_end -= 1;
+
+            if x_start <= x_end {
+                for i in (y_start..=y_end).rev() {
+                    maneuver_points.push(grid_parameters.calculate_flat_surface_coordinate_from(CellIndex2d::new(x_end, i)));
+                }
+                x_end -= 1;
+            }
+
+            if y_start <= y_end {
+                for i in (x_start..=x_end).rev() {
+                    maneuver_points.push(grid_parameters.calculate_flat_surface_coordinate_from(CellIndex2d::new(i, y_start)));
+                }
+                y_start += 1;
+            }
+        }
+
+        Maneuver {
+            path_points: maneuver_points,
+            progress: 0.0,
         }
     }
 
@@ -53,7 +98,7 @@ impl Maneuver {
     }
 }
 
-/// Interpolates transforms along a Bezier curve at a given parameter value.
+/// Interpolates transforms along a Bézier curve at a given parameter value.
 ///
 /// # Arguments
 ///
@@ -114,7 +159,8 @@ pub fn interpolate_straight(t: f32, waypoints: &[Transform]) -> Transform {
 /// # Examples
 ///
 /// ```
-/// let result = binomial_coefficient(5, 2);
+/// use game_types::function_libs::maneuver_animation_calculations;
+/// let result = maneuver_animation_calculations::binomial_coefficient(5, 2);
 /// assert_eq!(result, 10.0);
 /// ```
 #[inline]
@@ -148,31 +194,21 @@ fn ping_pong(value: f32, max_value: f32) -> f32 {
     }
 }
 
-/// Performs Catmull-Rom interpolation between control points to calculate the transform at a given progress.
+
+/// Performs catmull-rom interpolation on a sequence of transforms.
+///
+/// This function takes in a progress value and an array of transforms,
+/// and returns the interpolated transform based on the catmull-rom algorithm.
 ///
 /// # Arguments
 ///
-/// * `progress` - A floating-point number representing the progress of the interpolation. Should be in the range [0, 1].
-/// * `points` - A slice of `Transform` structs representing the control points for the interpolation.
+/// * `progress` - A f32 value representing the progress of the interpolation, ranging from 0.0 to 1.0.
+/// * `points` - A reference to an array of `Transform` objects representing control points for the interpolation.
 ///
 /// # Returns
 ///
-/// The interpolated `Transform` at the given progress.
+/// A `Transform` object representing the interpolated transform.
 ///
-/// # Examples
-///
-/// ```
-/// use my_library::{catmull_rom_interpolate, Transform};
-///
-/// let points = [
-///     Transform { translation: (0.0, 0.0, 0.0), rotation: (0.0, 0.0, 0.0), scale: (1.0, 1.0, 1.0) },
-///     Transform { translation: (1.0, 1.0, 1.0), rotation: (0.0, 0.0, 0.0), scale: (1.0, 1.0, 1.0) },
-///     Transform { translation: (2.0, 2.0, 2.0), rotation: (0.0, 0.0, 0.0), scale: (1.0, 1.0, 1.0) },
-///     Transform { translation: (3.0, 3.0, 3.0), rotation: (0.0, 0.0, 0.0), scale: (1.0, 1.0, 1.0) },
-/// ];
-///
-/// let interpolated_transform = catmull_rom_interpolate(0.5, &points);
-/// ```
 #[inline]
 pub fn catmull_rom_interpolate_transforms(progress: f32, points: &[Transform]) -> Transform {
     let (t_sec, t, t0, t1, t2, t3) = calculate_interpolation_parameters(progress, points.len());

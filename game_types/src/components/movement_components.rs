@@ -1,4 +1,4 @@
-use bevy::prelude::{Bundle, Component, Transform, Vec2};
+use bevy::prelude::{Component, Vec2};
 
 pub type Coordinate = f32;
 
@@ -53,6 +53,6 @@ pub struct CoordinateBounds {
 
 #[derive(Component, Default)]
 pub struct Maneuver {
-    pub(crate) path_points: Vec<SurfaceCoordinate>,
+    pub path_points: Vec<SurfaceCoordinate>,
     pub progress: f32,
 }

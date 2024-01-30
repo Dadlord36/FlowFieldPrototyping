@@ -1,10 +1,10 @@
 #![allow(clippy::type_complexity)]
 
-mod actions;
-mod audio;
-mod loading;
-mod menu;
-mod player;
+use bevy::{
+    app::App
+    ,
+    prelude::*,
+};
 
 use crate::actions::ActionsPlugin;
 use crate::audio::InternalAudioPlugin;
@@ -12,11 +12,12 @@ use crate::loading::LoadingPlugin;
 // use crate::menu::MenuPlugin;
 use crate::player::PlayerPlugin;
 
-use bevy::{
-    prelude::*,
-    diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin},
-    app::App,
-};
+mod actions;
+mod audio;
+mod loading;
+mod menu;
+mod player;
+
 // use bevy::core::update_frame_count;
 
 // This example game uses States to separate logic

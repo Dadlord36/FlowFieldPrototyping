@@ -1,15 +1,16 @@
 use std::fmt::{Display, Formatter};
 
-use bevy::math::{DVec2, Quat, UVec2, Vec2, Vec3};
-use bevy::prelude::Transform;
-
-use crate::components::{
-    grid_components::GridParameters,
-    movement_components::{
-        Coordinate,
-        SurfaceCoordinate,
-    },
+use bevy::{
+    math::{DVec2, Quat, Vec2, Vec3},
+    prelude::Transform,
 };
+use crate::{
+    components::{
+        grid_components::{CellIndex2d, Grid2D},
+        movement_components::{Coordinate, SurfaceCoordinate}
+    }
+};
+
 
 /*const MAX_BOUND_ANGLE: f32 = 180.0;
 const FULL_BOUND_ANGLE: f32 = MAX_BOUND_ANGLE * 2.0;
@@ -41,20 +42,20 @@ impl SurfaceCoordinate {
     }
 
     #[inline]
-    pub fn calculate_cell_index_on_flat_surface(&self, grid_parameters: &GridParameters) -> UVec2 {
+    pub fn calculate_cell_index_on_flat_surface(&self, grid_parameters: &Grid2D) -> CellIndex2d {
         let cell_index_x: u32 = (self.latitude * grid_parameters.max_column_index as Coordinate).round() as u32;
         let cell_index_y: u32 = (self.longitude * grid_parameters.max_row_index as Coordinate).round() as u32;
         grid_parameters.form_grid_bound_cell_index(cell_index_x, cell_index_y)
     }
 
     #[inline]
-    pub fn calculate_flat_surface_coordinate_from_pos(grid_parameters: &GridParameters, world_position: Vec2) -> Self {
+    pub fn calculate_flat_surface_coordinate_from_pos(grid_parameters: &Grid2D, world_position: Vec2) -> Self {
         let hovered_cell_index = grid_parameters.calculate_cell_index_from_position(world_position);
         return grid_parameters.calculate_flat_surface_coordinate_from(hovered_cell_index);
     }
 
     #[inline]
-    pub fn project_surface_coordinate_on_grid(&self, grid: &GridParameters) -> Transform {
+    pub fn project_surface_coordinate_on_grid(&self, grid: &Grid2D) -> Transform {
         let proportional_latitude = self.latitude * (grid.rect.width() as Coordinate - grid.cell_size.x as Coordinate)
             + (grid.rect.min.x + grid.cell_size.x / 2.0) as Coordinate;
         let proportional_longitude = self.longitude * (grid.rect.height() as Coordinate - grid.cell_size.y as Coordinate)
