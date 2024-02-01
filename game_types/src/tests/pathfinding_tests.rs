@@ -1,43 +1,49 @@
-use bevy::log::{error, info, warn};
+use bevy::log::{info, warn};
+use bevy::math::{URect, UVec2};
+use bracket_pathfinding::prelude::{a_star_search, Point};
 
-use bracket_pathfinding::{
-    prelude::{a_star_search, Point}
+use crate::{
+    components::{
+        grid_components::{
+            CellIndex2d,
+            Grid2D,
+            CellIndex1d,
+        },
+        pathfinding_components::{Pathfinder, PathfindingMap},
+    },
+    tests::common,
 };
+use crate::components::grid_components::GridRelatedData;
 
-use crate::tests::common;
-
-/*#[test]
+#[test]
 fn test_generate_map() {
-    let map: GridParameters = common::construct_default_grid();
+    let grid: Grid2D = common::construct_default_grid();
+    let grid_related_data = GridRelatedData::new(&grid);
 
+    let map: PathfindingMap = grid_related_data.create_pathfinding_map(URect::from_center_size(UVec2::new(5, 5), UVec2::new(5, 5)));
+
+    for (index, _element) in map.grid_segment_data.indexed_iter() {
+        println!("{:?}", index);
+    }
     let pathfinder = Pathfinder {
-        start: Point::new(5, 5),
-        end: Point::new(95, 95),
+        referenced_grid: grid.clone(),
+        start: CellIndex2d::new(0, 0),
+        end: CellIndex2d::new(3, 3),
     };
 
-    let start_idx = map.idx(pathfinder.start);
-    let end_idx = map.idx(pathfinder.end);
+    println!("Running A* Start: ({:?}), End: ({:?})", pathfinder.start, pathfinder.end);
 
-    if map.is_opaque(start_idx) {
-        error!("Start point is non-passable.");
-    }
+    let path = map.calculate_path(pathfinder);
 
-    if map.is_opaque(end_idx) {
-        error!("End point is non-passable.");
-    }
-    info!("Running A* Start: ({:?}), End: ({:?})", pathfinder.start, pathfinder.end);
-
-    let path = a_star_search(start_idx, end_idx, &map);
-
+    assert!(path.steps.len() > 0, "No steps were made");
     match path.steps.len() {
         0 => warn!("No path found."),
         _ => {
             warn!("Path found, steps:");
             for idx in path.steps.iter() {
-                let Point { x, y } = map.point_from_idx(*idx);
-                info!("{},{}", x, y);
+                println!("{idx}");
             }
         }
     }
     assert!(path.success);
-}*/
+}

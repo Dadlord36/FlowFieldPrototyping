@@ -46,7 +46,6 @@ fn main() {
     let mut fixed_update_loop_schedule = Schedule::new(RunFixedUpdateLoop);
     fixed_update_loop_schedule.set_executor_kind(ExecutorKind::SingleThreaded);
 
-
     App::new()
         .insert_resource(Msaa::Sample4)
         .insert_resource(AssetMetaCheck::Never)

@@ -4,17 +4,17 @@ use bevy::{
     math::{Rect, Vec2},
     prelude::UVec2,
 };
+use bevy::math::URect;
 use ndarray::{Array2, s};
-use num_traits::{AsPrimitive, Unsigned};
-use crate::{
-    components::{
-        grid_components::{CellIndex1d, CellIndex2d, Grid2D, GridCellData, GridRelatedData},
-        movement_components::{
-            SurfaceCoordinate,
-            Coordinate,
-        },
-        pathfinding_components::PathfindingMap,
-    }
+use num_traits::AsPrimitive;
+
+use crate::components::{
+    grid_components::{CellIndex1d, CellIndex2d, Grid2D, GridCellData, GridRelatedData},
+    movement_components::{
+        Coordinate,
+        SurfaceCoordinate,
+    },
+    pathfinding_components::PathfindingMap,
 };
 
 impl GridRelatedData {
@@ -22,16 +22,17 @@ impl GridRelatedData {
         GridRelatedData { data: Array2::default((grid_parameters.column_number as usize, grid_parameters.row_number as usize)) }
     }
 
-    pub fn create_pathfinding_map(&self, top_left: (usize, usize), bottom_right: (usize, usize)) -> PathfindingMap {
-        let width = bottom_right.0 - top_left.0 + 1;
-        let height = bottom_right.1 - top_left.1 + 1;
+    pub fn create_pathfinding_map(&self, inclusive_rect: URect) -> PathfindingMap {
+        let min: (usize, usize) = (inclusive_rect.min.x as usize, inclusive_rect.min.y as usize);
+        let max: (usize, usize) = (inclusive_rect.max.x as usize, inclusive_rect.max.y as usize);
+        assert!(self.data.dim().0 > max.0 && self.data.dim().1 > max.1, "The provided bounds are out of the original grid's range.");
 
-        assert!(self.data.dim().0 > bottom_right.0 && self.data.dim().1 > bottom_right.1, "The provided bounds are out of the original grid's range.");
-        let slice = self.data.slice(s![top_left.0..=bottom_right.0, top_left.1..=bottom_right.1]);
+        let slice = self.data.slice(s![min.0..=max.0, min.1..=max.1]);
+
         PathfindingMap {
             grid_segment_data: slice,
-            height: height as i32,
-            width: width as i32,
+            width: inclusive_rect.width(),
+            height: inclusive_rect.height(),
         }
     }
 
@@ -126,6 +127,16 @@ impl Grid2D {
     }
 
     #[inline]
+    pub fn calc_cell_index_1d_at(&self, cell_index2d: CellIndex2d) -> CellIndex1d {
+        calculate_1d_index(cell_index2d, self.column_number)
+    }
+
+    #[inline]
+    pub fn calc_cell_index_2d_at(&self, cell_index1d: CellIndex1d) -> CellIndex2d {
+        calculate_2d_index(cell_index1d, self.column_number)
+    }
+
+    #[inline]
     pub fn form_grid_bound_cell_index(&self, cell_index_x: u32, cell_index_y: u32) -> CellIndex2d {
         CellIndex2d::new(cell_index_x.clamp(0u32, self.max_column_index), cell_index_y.clamp(0u32, self.max_row_index))
     }
@@ -133,24 +144,24 @@ impl Grid2D {
     #[inline]
     pub fn calculate_flat_surface_coordinate_from(&self, cell_index2d: CellIndex2d) -> SurfaceCoordinate
     {
-        let latitude: Coordinate = f32::from(cell_index2d.x) / self.max_column_index as f32;
-        let longitude: Coordinate = f32::from(cell_index2d.y) / self.max_row_index as f32;
+        let latitude: Coordinate = cell_index2d.x as f32 / self.max_column_index as f32;
+        let longitude: Coordinate = cell_index2d.y as f32 / self.max_row_index as f32;
         SurfaceCoordinate { latitude, longitude }
     }
 
+    #[inline]
     pub fn is_cell_index_in_grid_bounds(&self, cell_index: CellIndex2d) -> bool {
         u32::from(cell_index.x) < self.column_number && u32::from(cell_index.y) < self.row_number
     }
 
+    #[inline]
     pub fn is_position_in_grid_bounds(&self, position: Vec2) -> bool {
         self.rect.contains(position)
     }
 }
 
 #[inline]
-pub fn calculate_2d_index<T>(index: T, column_number: u32) -> CellIndex2d
-    where
-        T: Unsigned + Copy + From<u32>, u32: From<T>
+pub fn calculate_2d_index(index: CellIndex1d, column_number: u32) -> CellIndex2d
 {
     let index_u32: u32 = index.into();
     CellIndex2d::new(index_u32 % column_number, index_u32 / column_number)
@@ -164,7 +175,7 @@ pub fn calculate_1d_index(index: CellIndex2d, column_number: u32) -> CellIndex1d
 #[inline]
 pub fn calculate_2d_from_1d_index(grid_parameters: &Grid2D, index: CellIndex1d) -> CellIndex2d
 {
-    calculate_2d_index::<u32>(index.into(), grid_parameters.column_number)
+    calculate_2d_index(index, grid_parameters.column_number)
 }
 
 #[inline]

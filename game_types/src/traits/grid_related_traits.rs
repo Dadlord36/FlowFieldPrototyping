@@ -1,17 +1,17 @@
 use std::{
     fmt::{self, Debug, Formatter},
-    ops::{Add, Sub},
+    ops::{
+        Add,
+        Sub,
+        Mul
+    }
 };
-use std::ops::Mul;
 
 use bevy::prelude::{UVec2, Vec2};
-use ndarray::{
-    NdIndex,
-    prelude::*
-};
+use ndarray::{Ix2, NdIndex};
 use num_traits::AsPrimitive;
 
-use crate::components::grid_components::{CellIndex1d, CellIndex2d};
+use crate::components::grid_components::CellIndex2d;
 
 impl From<UVec2> for CellIndex2d {
     fn from(vec: UVec2) -> Self {
@@ -21,11 +21,11 @@ impl From<UVec2> for CellIndex2d {
 
 impl From<CellIndex2d> for Vec2 {
     fn from(index: CellIndex2d) -> Self {
-        Vec2 { x: index.x.into(), y: index.y.into() }
+        Vec2 { x: index.x as f32, y: index.y as f32 }
     }
 }
 
-impl From<CellIndex2d> for UVec2{
+impl From<CellIndex2d> for UVec2 {
     fn from(value: CellIndex2d) -> Self {
         UVec2 { x: value.x.into(), y: value.y.into() }
     }
@@ -36,8 +36,8 @@ impl Mul<Vec2> for CellIndex2d {
 
     fn mul(self, rhs: Vec2) -> Self::Output {
         Vec2::new(
-            f32::from(self.x) * rhs.x,
-            f32::from(self.y) * rhs.y,
+            (self.x as f32) * rhs.x,
+            (self.y as f32) * rhs.y,
         )
     }
 }
@@ -81,11 +81,11 @@ impl Mul<f64> for CellIndex2d {
     type Output = Self;
 
     fn mul(self, rhs: f64) -> Self::Output {
-        let x:f64 = self.x.as_();
-        let y:f64 = self.y.as_();
+        let x: f64 = self.x.as_();
+        let y: f64 = self.y.as_();
         Self {
-            x: (x * rhs).into(),
-            y: (y * rhs).into(),
+            x: (x * rhs) as u32,
+            y: (y * rhs) as u32,
         }
     }
 }
@@ -107,34 +107,46 @@ impl Debug for CellIndex2d {
     }
 }
 
-impl Debug for CellIndex1d {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "CellIndex1d : {self}")
+impl fmt::Display for CellIndex2d {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "({}, {})", self.x, self.y)
+    }
+}
+
+impl CellIndex2d {
+    pub fn new<T: AsPrimitive<u32>>(x: T, y: T) -> Self {
+        CellIndex2d {
+            x: x.as_(),
+            y: y.as_(),
+        }
+    }
+
+    pub fn normalize(&self) -> Self {
+        let length = ((self.x.pow(2) + self.y.pow(2)) as f32).sqrt() as u32;
+        Self {
+            x: self.x / length,
+            y: self.y / length,
+        }
+    }
+
+    pub fn euclidean_distance(&self, other: &CellIndex2d) -> f32 {
+        let x_distance = other.x as f64 - self.x as f64;
+        let y_distance = other.y as f64 - self.y as f64;
+
+        (x_distance.powi(2) + y_distance.powi(2)).sqrt() as f32
     }
 }
 
 unsafe impl NdIndex<Ix2> for CellIndex2d {
     fn index_checked(&self, dim: &Ix2, strides: &Ix2) -> Option<isize> {
-        let ix: [usize; 2] = [CellIndex1d::into(self.x), usize::from(self.y)];
-        ix.index_checked(dim, strides)
+        if (self.x as usize) < dim[0] && (self.y as usize) < dim[1] {
+            Some(self.index_unchecked(strides))
+        } else {
+            None
+        }
     }
 
     fn index_unchecked(&self, strides: &Ix2) -> isize {
-        let ix: [usize; 2] = [CellIndex1d::into(self.x), usize::from(self.y)];
-        ix.index_unchecked(strides)
-    }
-}
-
-
-
-impl From<CellIndex1d> for f32 {
-    fn from(index: CellIndex1d) -> Self {
-        index.value.as_()
-    }
-}
-
-impl From<CellIndex1d> for usize {
-    fn from(index: CellIndex1d) -> Self {
-        index.value.as_()
+        (self.x as isize * strides[0] as isize) + (self.y as isize * strides[1] as isize)
     }
 }

@@ -2,9 +2,8 @@ use bevy::{
     prelude::{Color, Query, Res, ResMut, With},
     sprite::Sprite
 };
-use num_traits::AsPrimitive;
-use crate::components::grid_components::{CellIndex, CellIndex2d, Grid2D, GridCellTag, GridRelatedData};
 
+use crate::components::grid_components::{CellIndex, CellIndex2d, Grid2D, GridCellTag, GridRelatedData};
 
 pub fn reset_cells_colorization(grid_parameters: Res<Grid2D>, mut grid_cell_data: ResMut<GridRelatedData>) {
     let mut color1 = Color::YELLOW_GREEN;
