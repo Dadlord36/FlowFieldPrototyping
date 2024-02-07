@@ -3,9 +3,11 @@ use bevy::{
     prelude::{Color, Commands, Res},
 };
 use game_types::{
-    components::grid_components::{CellIndex2d, Grid2D},
+    components::grid_components::definitions::{CellIndex2d, Grid2D},
     systems::flow_driven_movement::calculate_coordination_data,
 };
+
+
 use crate::systems::flow_field_related;
 
 pub fn spawn_moving_cubes(mut commands: Commands, grid_parameters: Res<Grid2D>)
@@ -22,7 +24,6 @@ pub fn spawn_moving_cubes(mut commands: Commands, grid_parameters: Res<Grid2D>)
         spawn_movable_actor_on_grid(&mut commands, &grid_parameters, cell_index.into(), color);
     }
 }
-
 
 fn spawn_movable_actor_on_grid(mut commands: &mut Commands, grid_parameters: &Res<Grid2D>, cell_index: CellIndex2d, color: Color)
 {

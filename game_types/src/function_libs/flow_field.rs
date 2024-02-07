@@ -2,13 +2,11 @@ use std::cmp::{max, min};
 
 use bevy::math::{UVec2, Vec2};
 use ndarray::prelude::*;
-use num_traits::AsPrimitive;
 use rand::Rng;
-use crate::{
-    components::{
-        flow_field_components::{ExplosionParameters, FlowField},
-        grid_components::{CellIndex2d, Grid2D}
-    }
+
+use crate::components::{
+    flow_field_components::{ExplosionParameters, FlowField},
+    grid_components::definitions::{CellIndex2d, Grid2D},
 };
 
 impl ExplosionParameters {
@@ -57,12 +55,12 @@ impl FlowField {
         FlowField::from_array(field_init)
     }
 
-    pub fn get_field_at(&self, cell_index: CellIndex2d) -> Vec2 {
+    pub fn get_field_at(&self, cell_index: &CellIndex2d) -> Vec2 {
         self.field[cell_index]
     }
 
     //get a rotation angle in radians from flow direction at index
-    pub fn get_rotation_angle_at(&self, cell_index: CellIndex2d) -> f32 {
+    pub fn get_rotation_angle_at(&self, cell_index: &CellIndex2d) -> f32 {
         let field_at_index: Vec2 = self.get_field_at(cell_index);
         field_at_index.x.atan2(field_at_index.y)
     }
@@ -77,8 +75,8 @@ impl FlowField {
             cell_index_2d.x = x.into();
             for y in u32::from(min_limit.y)..=u32::from(max_limit.y) {
                 cell_index_2d.y = y.into();
-                
-                self.field[cell_index_2d] = apply_explosion_to_flow_vector(self.field[cell_index_2d],
+
+                self.field[&cell_index_2d] = apply_explosion_to_flow_vector(self.field[&cell_index_2d],
                                                                            cell_index_2d.into(), explosion_parameters.impact_center_cell_index,
                                                                            grid_parameters.cell_size, 0.9);
             }

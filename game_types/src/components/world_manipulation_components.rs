@@ -1,7 +1,7 @@
 use bevy::math::Vec2;
 use bevy::prelude::{Component, Resource};
+use crate::components::grid_components::definitions::CellIndex2d;
 
-use crate::components::grid_components::CellIndex2d;
 
 #[derive(Resource, Default)]
 pub struct HoverCell {

@@ -6,7 +6,7 @@ use bevy::{
 };
 use crate::{
     components::{
-        grid_components::{CellIndex2d, Grid2D},
+        grid_components::definitions::{CellIndex2d, Grid2D},
         movement_components::{Coordinate, SurfaceCoordinate}
     }
 };

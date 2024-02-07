@@ -2,15 +2,16 @@ use bevy::{
     math::{Rect, UVec2},
     prelude::*,
 };
-use num_traits::AsPrimitive;
 
 use crate::{
+    components::{
+        grid_components::definitions::{CellIndex2d, Grid2D},
+        movement_components::Maneuver,
+        grid_components::grid_related_traits::CoordinateIterator,
+        movement_components,
+    },
     function_libs::grid_calculations,
     tests::common,
-    components::{
-        grid_components::{self, CellIndex2d, Grid2D},
-        movement_components::Maneuver,
-    },
 };
 
 #[test]
@@ -36,17 +37,63 @@ pub fn test_grid_iteration() {
     println!();
 
     // Create the vector of expected outputs
-    let mut expected_output: Vec<(u32, u32)> = Vec::new();
+    let mut expected_output: Vec<CellIndex2d> = Vec::new();
     for row in 0..grid_parameters.row_number {
         for col in 0..grid_parameters.column_number {
-            expected_output.push((col, row));
+            expected_output.push(CellIndex2d::new(col, row));
         }
     }
 
     // Get the actual coordinates from the grid
-    let actual_output: Vec<(u32, u32)> = grid_parameters.iterate_coordinates().collect();
+    let actual_output: Vec<_> = grid_parameters.iter_coordinates().collect();
 
     assert_eq!(expected_output, actual_output, "The order of coordinate iteration is incorrect");
+}
+
+#[test]
+fn test_grid_area_iteration() {
+    let grid = common::construct_default_grid();
+
+    // Define the start point for each direction
+    let starting_point = CellIndex2d::new(5, 5);
+
+    let rect = grid.calculate_area_from(CellIndex2d::new(0, 0), IVec2::new(1, 1), 15);
+
+    for direction in movement_components::DIRECTIONS {
+        // Run the URectIterator with 'num_steps' steps
+
+        let iterator = CoordinateIterator::iter_area_fully_from(starting_point, direction, rect);
+        println!("Iterating fully in direction from: {direction} in rect area: {:?}", rect);
+        for cell_index in iterator {
+            println!("cell_index: {cell_index}");
+        }
+    }
+}
+
+
+#[test]
+fn test_grid_line_iteration() {
+    let grid = common::construct_default_grid();
+
+    // Define the start point for each direction
+    let starting_point = CellIndex2d::new(5, 5);
+
+    let rect = grid.calculate_area_from(CellIndex2d::new(0, 0), IVec2::new(1, 1), 10);
+
+    for direction in movement_components::DIRECTIONS {
+        // Run the URectIterator with 'num_steps' steps
+
+        let iterator = CoordinateIterator::iter_area_in_line_from(starting_point, direction, rect);
+        println!("Iterating in direction from: {direction} in rect area: {:?}", rect);
+        for cell_index in iterator {
+            println!("cell_index: {cell_index}");
+        }
+    }
+}
+
+// Helper function to compute the expected outcome
+fn compute_expected_outcome(start_point: CellIndex2d, direction: Vec2, num_steps: u32) -> Vec<CellIndex2d> {
+    (1..=num_steps).map(|i| start_point + CellIndex2d::from(direction * Vec2::new(i as f32, i as f32))).collect()
 }
 
 #[test]
@@ -65,8 +112,7 @@ fn test_grid_indexing() {
 fn test_surface_coord_to_occupied_cell_index_conversion() {
     let grid_parameters: Grid2D = common::construct_default_grid();
 
-    for (col, row) in grid_parameters.iterate_coordinates() {
-        let cell_index_2d = CellIndex2d::new(col, row);
+    for cell_index_2d in grid_parameters.iter_coordinates() {
         let coordinate = grid_parameters.calculate_flat_surface_coordinate_from(cell_index_2d);
         let restored_index = coordinate.calculate_cell_index_on_flat_surface(&grid_parameters);
 
@@ -83,8 +129,7 @@ fn test_coordinate_to_position_on_grid_conversion()
 {
     let grid_parameters: Grid2D = common::construct_default_grid();
 
-    for (col, row) in grid_parameters.iterate_coordinates() {
-        let cell_index_2d = CellIndex2d::new(col, row);
+    for cell_index_2d in grid_parameters.iter_coordinates() {
         assert!(grid_parameters.is_cell_index_in_grid_bounds(cell_index_2d), "cell_index: {cell_index_2d} is out of the grid bounds.");
         let grid_cell_position = grid_parameters.calculate_cell_position(cell_index_2d);
         // assert!(grid_parameters.is_position_in_grid_bounds(grid_cell_position), "grid_cell_position {grid_cell_position} is out of the grid bounds.");
@@ -151,8 +196,7 @@ fn test_bezier_interpolate() {
 fn test_calculate_indexes_in_circle_from_index() {
     let grid_parameters: Grid2D = common::construct_default_grid();
     // let mut output = String::new();
-    for (col, row) in grid_parameters.iterate_coordinates() {
-        let cell_index = CellIndex2d::new(col, row);
+    for cell_index in grid_parameters.iter_coordinates() {
         let cells_in_range = grid_calculations::calculate_indexes_in_circle_from_index(&grid_parameters,
                                                                                        cell_index, 5u32);
     }

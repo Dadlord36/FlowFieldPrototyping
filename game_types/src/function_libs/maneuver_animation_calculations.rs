@@ -1,11 +1,11 @@
 use bevy::{
     math::{Quat, Vec3},
-    prelude::{Transform, UVec2, Vec2}
+    prelude::{Transform, UVec2, Vec2},
 };
 use crate::{
     components::{
-        grid_components::{CellIndex2d, Grid2D},
-        movement_components::{Maneuver, SurfaceCoordinate}
+        grid_components::definitions::{CellIndex2d, Grid2D},
+        movement_components::{Maneuver, SurfaceCoordinate},
     }
 };
 
@@ -235,7 +235,7 @@ pub fn catmull_rom_interpolate_transforms(progress: f32, points: &[Transform]) -
 #[inline]
 fn calculate_interpolation_parameters(progress: f32, points_num: usize) -> (usize, f32, usize, usize, usize, usize) {
     let num_sections = points_num - 1;
-    let t_sec = f32::floor((progress * num_sections as f32)) as usize;
+    let t_sec = f32::floor(progress * num_sections as f32) as usize;
     let t = progress * num_sections as f32 - (t_sec as f32);
 
     // Control points adjustment
@@ -248,7 +248,7 @@ fn calculate_interpolation_parameters(progress: f32, points_num: usize) -> (usiz
 
 #[inline]
 pub fn catmull_rom_interpolate_coordinates(progress: f32, points: &[SurfaceCoordinate]) -> SurfaceCoordinate {
-    let (t_sec, t, t0, t1, t2, t3) = calculate_interpolation_parameters(progress, points.len());
+    let (_t_sec, t, t0, t1, t2, t3) = calculate_interpolation_parameters(progress, points.len());
 
     let p0: Vec2 = points[t0].into();
     let p1: Vec2 = points[t1].into();

@@ -1,7 +1,11 @@
 use bevy::prelude::{Bundle, SpriteBundle};
-use game_types::components::grid_components::CellIndex;
 
-use game_types::components::movement_components::{MoveTag, SurfaceCoordinate};
+use game_types::{
+    components::{
+        grid_components::definitions::CellIndex,
+        movement_components::{MoveTag, SurfaceCoordinate},
+    }
+};
 
 #[derive(Bundle, Clone, Default)]
 pub struct SurfaceWalkerBundle {

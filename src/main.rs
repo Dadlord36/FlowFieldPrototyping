@@ -6,30 +6,29 @@ use bevy::{
     asset::AssetMetaCheck,
     DefaultPlugins,
     prelude::*,
-    app::RunFixedUpdateLoop,
-    ecs::schedule::ExecutorKind,
 };
+
 use bevy_prototype_lyon::prelude::ShapePlugin;
+
 use game_types::{
     components::{
         flow_field_components::FlowField,
-        grid_components::{Grid2D, GridRelatedData},
+        grid_components::definitions::{Grid2D, GridRelatedData},
         world_manipulation_components::{CursorWorldPosition, HoverCell},
     },
     systems::{
+        flow_driven_movement::*,
+        flow_field_manipulations::*,
         grid_related::*,
         selection_related::*,
-        flow_field_manipulations::*,
-        flow_driven_movement::*
-    }
+    },
 };
+use game_types::components::movement_components;
 use systems::{
     flow_field_related::*,
-    selection_related::*,
     grid_related::*,
-    flow_driven_movement::*
+    selection_related::*,
 };
-
 
 mod components;
 mod bundles;
@@ -39,12 +38,13 @@ mod systems;
 fn main() {
     let grid_parameters = Grid2D::new(25, 25, Vec2::new(50f32, 50f32));
     let flow_field = FlowField::form_field(grid_parameters.column_number as usize, grid_parameters.row_number as usize);
-    let grid_related_data = GridRelatedData::new(&grid_parameters);
+    let mut grid_related_data = GridRelatedData::new(&grid_parameters);
+    grid_related_data.fill_with_random_obstacle_pattern(&grid_parameters);
 
-    let mut main_schedule = Schedule::new(Main);
-    main_schedule.set_executor_kind(ExecutorKind::SingleThreaded);
-    let mut fixed_update_loop_schedule = Schedule::new(RunFixedUpdateLoop);
-    fixed_update_loop_schedule.set_executor_kind(ExecutorKind::SingleThreaded);
+    /*    let mut main_schedule = Schedule::new(Main);
+        main_schedule.set_executor_kind(ExecutorKind::SingleThreaded);
+        let mut fixed_update_loop_schedule = Schedule::new(RunFixedUpdateLoop);
+        fixed_update_loop_schedule.set_executor_kind(ExecutorKind::SingleThreaded);*/
 
     App::new()
         .insert_resource(Msaa::Sample4)
@@ -68,16 +68,18 @@ fn main() {
         .add_systems(Startup, (setup, spawned_colorized_cells_system, visualize_flow_system, reset_cells_colorization,
                                spawn_dummy_path_driven_actor).chain())
         .add_systems(PreUpdate, (reset_cells_colorization, capture_cursor_position, mouse_hover_system,
-                                 /* adjust_coordinate_system,*/
-                                 path_movement_system, apply_surface_coordinate_system,
+                                 move_camera_system, avoidance_maneuver_system,
+                                 path_movement_system, adjust_coordinate_system,
+                                 apply_surface_coordinate_system,
                                  grid_relation_system).chain())
-        .add_systems(Update, (cell_occupation_highlight_system, apply_color_to_cell).chain())
+        .add_systems(Update, (cell_occupation_highlight_system, colorize_obstacles_system, apply_color_to_cell).chain())
         .add_systems(Update, (flow_explosion_system, rotate_flow_arrows_system).chain())
         .insert_resource(grid_parameters)
         .insert_resource(grid_related_data)
         .insert_resource(flow_field)
         .insert_resource(HoverCell::default())
         .insert_resource(CursorWorldPosition::default())
+        .insert_resource(movement_components::Direction::West)
         // .add_systems(Startup, set_window_icon)
         .run();
 }

@@ -3,8 +3,8 @@ use bevy::{
     prelude::{Component, Resource}
 };
 use ndarray::Array2;
+use crate::components::grid_components::definitions::CellIndex2d;
 
-use crate::components::grid_components::CellIndex2d;
 
 #[derive(Component)]
 pub struct Arrow;

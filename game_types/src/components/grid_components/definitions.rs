@@ -2,12 +2,13 @@ use bevy::{
     math::{Rect, Vec2},
     prelude::{Color, Component, Resource},
 };
-use derive_more::{Constructor, From, Into};
+use bevy::core::Zeroable;
+use derive_more::{AsRef, Constructor, Add, From, Into, Rem, Sub, AddAssign};
 use ndarray::Array2;
 
 pub type CellIndex1d = u32;
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Eq, PartialEq)]
 pub enum Occupation {
     Free,
     Occupied,
@@ -19,13 +20,13 @@ impl Default for Occupation {
     }
 }
 
-#[derive(Clone, Copy, Default, From, Into, Eq, PartialEq)]
+#[derive(Clone, Copy, Default, Add, AddAssign, Sub, Rem, From, Into, Eq, PartialEq)]
 pub struct CellIndex2d {
     pub x: CellIndex1d,
     pub y: CellIndex1d,
 }
 
-#[derive(Resource, Copy, Clone)]
+#[derive(Resource, Clone)]
 pub struct Grid2D {
     pub column_number: u32,
     pub row_number: u32,
@@ -35,6 +36,7 @@ pub struct Grid2D {
     pub rect: Rect,
     pub max_row_index: u32,
     pub max_column_index: u32,
+    pub(crate) indexes: Array2<CellIndex2d>,
 }
 
 #[derive(Clone, Default)]
@@ -45,10 +47,10 @@ pub struct GridCellData {
 
 #[derive(Resource)]
 pub struct GridRelatedData {
-    pub data: Array2<GridCellData>,
+    pub(super) data: Array2<GridCellData>,
 }
 
-#[derive(Component, Clone, Copy, Default, Constructor, From, Into)]
+#[derive(Component, Clone, Copy, Default, AsRef, Constructor, From, Into)]
 pub struct CellIndex {
     pub index: CellIndex2d,
 }

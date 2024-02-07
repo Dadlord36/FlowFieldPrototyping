@@ -1,6 +1,6 @@
 use bevy::{
     math::Quat,
-    prelude::{Color, Commands, Res, SpatialBundle, Transform}
+    prelude::{Color, Commands, Res, SpatialBundle, Transform},
 };
 use bevy::math::{UVec2, Vec2};
 use bevy::prelude::{Sprite, SpriteBundle};
@@ -8,26 +8,27 @@ use bevy_prototype_lyon::{
     draw::{Fill, Stroke},
     entity::ShapeBundle,
     path::PathBuilder,
-    prelude::Path
+    prelude::Path,
 };
+
 use game_types::{
     components::{
         flow_field_components::{Arrow, FlowField},
-        grid_components::{CellIndex, CellIndex2d, Grid2D}
-    }
+        grid_components::definitions::{CellIndex, CellIndex2d, Grid2D},
+        movement_components::{Maneuver, SurfaceCoordinate},
+    },
+    systems::flow_driven_movement,
 };
-use game_types::components::movement_components::{Maneuver, SurfaceCoordinate};
-use game_types::systems::{flow_driven_movement};
+
 use crate::bundles::movables::SurfaceWalkerBundle;
 
 pub fn visualize_flow_system(mut _commands: Commands, grid_parameter: Res<Grid2D>, flow_field: Res<FlowField>) {
     // Create a new PathBuilder for the arrow shape
-    for (col, row) in grid_parameter.iterate_coordinates() {
-        let coordinate = CellIndex2d::new(col, row);
+    for coordinate in grid_parameter.iter_coordinates() {
         let cell_position = grid_parameter.calculate_cell_position(coordinate).extend(0.0);
         let mut new_transform = Transform::from_xyz(cell_position.x, cell_position.y, cell_position.z);
 
-        new_transform.rotation = Quat::from_rotation_z(flow_field.get_rotation_angle_at(coordinate));
+        new_transform.rotation = Quat::from_rotation_z(flow_field.get_rotation_angle_at(&coordinate));
         // Spawn an entity with the arrow shape, positioned at the cell's location
         // and rotated to match the flow direction
         _commands.spawn((ShapeBundle {
@@ -86,7 +87,7 @@ pub fn spawn_dummy_path_driven_actor(mut commands: Commands, grid_parameters: Re
 }
 
 pub(crate) fn spawn_movable_actor(commands: &mut Commands, cell_index: CellIndex2d, color: Color, actor_size: Vec2,
-                                  coordinate: SurfaceCoordinate, mut coordinate_world_transform: Transform) {
+                                  coordinate: SurfaceCoordinate, coordinate_world_transform: Transform) {
     commands.spawn(SurfaceWalkerBundle {
         surface_coordinate: coordinate,
         occupied_cell_index: CellIndex::from(cell_index),
@@ -102,7 +103,6 @@ pub(crate) fn spawn_movable_actor(commands: &mut Commands, cell_index: CellIndex
         ..Default::default()
     });
 }
-
 
 
 fn build_arrow_shape(length: f32, width: f32) -> Path {

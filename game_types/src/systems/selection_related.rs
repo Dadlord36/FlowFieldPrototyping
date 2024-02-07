@@ -1,19 +1,16 @@
 use bevy::{
     log::warn,
-    prelude::{Color, CursorMoved, EventReader, Res, ResMut}
+    prelude::{Color, CursorMoved, EventReader, Res, ResMut},
 };
-
 use crate::{
     components::{
-        grid_components::{Grid2D, GridRelatedData},
-        world_manipulation_components::CursorWorldPosition
+        grid_components::definitions::{Grid2D, GridRelatedData},
+        world_manipulation_components::CursorWorldPosition,
     },
-    function_libs::grid_calculations::{
-        self
-    }
+    function_libs::grid_calculations,
 };
 
-pub fn mouse_hover_system(mut cursor_moved_events: EventReader<CursorMoved>, cursor_world_position: Res<CursorWorldPosition>,
+pub fn mouse_hover_system(_cursor_moved_events: EventReader<CursorMoved>, cursor_world_position: Res<CursorWorldPosition>,
                           mut grid_cell_data: ResMut<GridRelatedData>, grid_parameters: Res<Grid2D>)
 {
     // Since the mouse can move multiple times per frame, only keep the last position
@@ -34,12 +31,8 @@ pub fn mouse_hover_system(mut cursor_moved_events: EventReader<CursorMoved>, cur
         let cells_in_range = grid_calculations::calculate_indexes_in_circle_from_index(&grid_parameters,
                                                                                        hovered_cell_index, 3);
         for cell_index in cells_in_range {
-            let cell_data = grid_cell_data.get_data_at_mut(cell_index);
-            if cell_data.is_none() {
-                warn!("Cell data is invalid!");
-                continue;
-            }
-            cell_data.unwrap().color = selection_color;
+            let cell_data = grid_cell_data.get_data_at_mut(&cell_index);
+            cell_data.color = selection_color;
         }
         // }
     }

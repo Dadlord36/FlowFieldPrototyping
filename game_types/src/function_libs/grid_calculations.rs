@@ -1,164 +1,9 @@
-use std::cmp::min;
-
-use bevy::{
-    math::{Rect, Vec2},
-    prelude::UVec2,
-};
 use bevy::math::URect;
-use ndarray::{Array2, s};
+use bevy::math::Vec2;
+use ndarray::{Array2, ArrayView2, s};
 use num_traits::AsPrimitive;
 
-use crate::components::{
-    grid_components::{CellIndex1d, CellIndex2d, Grid2D, GridCellData, GridRelatedData},
-    movement_components::{
-        Coordinate,
-        SurfaceCoordinate,
-    },
-    pathfinding_components::PathfindingMap,
-};
-
-impl GridRelatedData {
-    pub fn new(grid_parameters: &Grid2D) -> Self {
-        GridRelatedData { data: Array2::default((grid_parameters.column_number as usize, grid_parameters.row_number as usize)) }
-    }
-
-    pub fn create_pathfinding_map(&self, inclusive_rect: URect) -> PathfindingMap {
-        let min: (usize, usize) = (inclusive_rect.min.x as usize, inclusive_rect.min.y as usize);
-        let max: (usize, usize) = (inclusive_rect.max.x as usize, inclusive_rect.max.y as usize);
-        assert!(self.data.dim().0 > max.0 && self.data.dim().1 > max.1, "The provided bounds are out of the original grid's range.");
-
-        let slice = self.data.slice(s![min.0..=max.0, min.1..=max.1]);
-
-        PathfindingMap {
-            grid_segment_data: slice,
-            width: inclusive_rect.width(),
-            height: inclusive_rect.height(),
-        }
-    }
-
-    pub fn get_data_at_mut(&mut self, cell_index: CellIndex2d) -> Option<&mut GridCellData> { self.data.get_mut(cell_index) }
-
-    pub fn get_data_at(&self, cell_index: CellIndex2d) -> Option<&GridCellData> { self.data.get(cell_index) }
-}
-
-pub struct CoordinateIterator {
-    inner: std::vec::IntoIter<(u32, u32)>,
-}
-
-impl CoordinateIterator {
-    pub fn new(start_i: u32, end_i: u32, start_j: u32, end_j: u32) -> Self {
-        let data: Vec<_> = (start_j..end_j).flat_map(move |j| (start_i..end_i).map(move |i| (i, j))).collect();
-        let inner = data.into_iter();
-        Self { inner }
-    }
-}
-
-
-impl Iterator for CoordinateIterator {
-    type Item = (u32, u32);
-
-    fn next(&mut self) -> Option<Self::Item> {
-        self.inner.next()
-    }
-}
-
-impl DoubleEndedIterator for CoordinateIterator {
-    fn next_back(&mut self) -> Option<Self::Item> {
-        self.inner.next_back()
-    }
-}
-
-impl Grid2D {
-    pub fn iterate_coordinates(&self) -> CoordinateIterator {
-        CoordinateIterator::new(0, self.column_number, 0, self.row_number)
-    }
-
-    pub fn coordinates_range(&self, min: UVec2, max: UVec2) -> CoordinateIterator {
-        assert!(max.x <= self.column_number);
-        assert!(max.y <= self.row_number);
-        CoordinateIterator::new(min.x, max.x, min.y, max.y)
-    }
-
-    pub fn new(column_number: u32, row_number: u32, cell_size: Vec2) -> Self {
-        let grid_size = Vec2::new(column_number as f32 * cell_size.x, row_number as f32 * cell_size.y);
-        Grid2D {
-            column_number,
-            row_number,
-            cell_size,
-            grid_size,
-            cells_spacing: 0.0,
-            rect: Rect::from_center_size(Vec2::ZERO, grid_size),
-            max_column_index: column_number - 1,
-            max_row_index: row_number - 1,
-        }
-    }
-
-    #[inline]
-    pub fn calculate_cell_position(&self, cell_index: CellIndex2d) -> Vec2 {
-        let cell_size = self.cell_size;
-        let grid_center = self.rect.center();
-        let cell_index_float: Vec2 = cell_index.into();
-
-        Vec2::new(grid_center.x - (self.grid_size.x / 2.0) + (cell_index_float.x * cell_size.x) + (cell_size.x / 2.0),
-                  grid_center.y - (self.grid_size.y / 2.0) + (cell_index_float.y * cell_size.y) + (cell_size.y / 2.0))
-    }
-
-    #[inline]
-    pub fn calculate_indexes_limits_in_rang(&self, center_cell_index: CellIndex2d, radius: u32) -> (CellIndex2d, CellIndex2d) {
-        let cell_index_float: UVec2 = center_cell_index.into();
-
-        let min_x = cell_index_float.x.saturating_sub(radius);
-        let min_y = cell_index_float.y.saturating_sub(radius);
-
-        let max_x = min(cell_index_float.x + radius, self.max_column_index);
-        let max_y = min(cell_index_float.y + radius, self.max_row_index);
-
-        return (CellIndex2d::new(min_x, min_y), CellIndex2d::new(max_x, max_y));
-    }
-
-    #[inline]
-    pub fn calculate_cell_index_from_position(&self, position: Vec2) -> CellIndex2d {
-        let grid_center = self.rect.center();
-
-        let cell_index_x = ((position.x + self.grid_size.x / 2.0 - grid_center.x) / self.cell_size.x).floor() as u32;
-        let cell_index_y = ((position.y + self.grid_size.y / 2.0 - grid_center.y) / self.cell_size.y).floor() as u32;
-
-        self.form_grid_bound_cell_index(cell_index_x, cell_index_y)
-    }
-
-    #[inline]
-    pub fn calc_cell_index_1d_at(&self, cell_index2d: CellIndex2d) -> CellIndex1d {
-        calculate_1d_index(cell_index2d, self.column_number)
-    }
-
-    #[inline]
-    pub fn calc_cell_index_2d_at(&self, cell_index1d: CellIndex1d) -> CellIndex2d {
-        calculate_2d_index(cell_index1d, self.column_number)
-    }
-
-    #[inline]
-    pub fn form_grid_bound_cell_index(&self, cell_index_x: u32, cell_index_y: u32) -> CellIndex2d {
-        CellIndex2d::new(cell_index_x.clamp(0u32, self.max_column_index), cell_index_y.clamp(0u32, self.max_row_index))
-    }
-
-    #[inline]
-    pub fn calculate_flat_surface_coordinate_from(&self, cell_index2d: CellIndex2d) -> SurfaceCoordinate
-    {
-        let latitude: Coordinate = cell_index2d.x as f32 / self.max_column_index as f32;
-        let longitude: Coordinate = cell_index2d.y as f32 / self.max_row_index as f32;
-        SurfaceCoordinate { latitude, longitude }
-    }
-
-    #[inline]
-    pub fn is_cell_index_in_grid_bounds(&self, cell_index: CellIndex2d) -> bool {
-        u32::from(cell_index.x) < self.column_number && u32::from(cell_index.y) < self.row_number
-    }
-
-    #[inline]
-    pub fn is_position_in_grid_bounds(&self, position: Vec2) -> bool {
-        self.rect.contains(position)
-    }
-}
+use crate::components::grid_components::definitions::{CellIndex1d, CellIndex2d, Grid2D};
 
 #[inline]
 pub fn calculate_2d_index(index: CellIndex1d, column_number: u32) -> CellIndex2d
@@ -200,6 +45,17 @@ pub fn calculate_indexes_in_range(grid_parameters: &Grid2D, center_cell_index: C
     (min_limit.y.as_()..=max_limit.y.as_()).flat_map(|y: u32| {
         (min_limit.x.as_()..=max_limit.x.as_()).map(move |x| CellIndex2d::new(x, y))
     }).collect()
+}
+
+#[inline]
+pub fn slice_2d_array<T>(data: &Array2<T>, inclusive_rect: URect) -> ArrayView2<T> {
+    let min: (usize, usize) = (inclusive_rect.min.x as usize, inclusive_rect.min.y as usize);
+    let max: (usize, usize) = (inclusive_rect.max.x as usize, inclusive_rect.max.y as usize);
+
+    assert!(data.dim().0 > max.0 && data.dim().1 > max.1, "The provided bounds are out of the original grid's range.");
+
+    let slice = data.slice(s![min.0..=max.0, min.1..=max.1]);
+    slice
 }
 
 pub fn euclidean_distance(a: Vec2, b: Vec2) -> f32 {
