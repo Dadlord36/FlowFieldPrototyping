@@ -46,8 +46,11 @@ pub fn spawned_colorized_cells_system(mut commands: Commands, grid_parameter: Re
 pub fn colorize_obstacles_system(grid_parameters: Res<Grid2D>, mut grid_related_data: ResMut<GridRelatedData>) {
     for coordinate in grid_parameters.iter_coordinates() {
         let grid_cell_data = grid_related_data.get_data_at_mut(&coordinate);
-        if grid_cell_data.occupation_state == Occupation::Occupied {
-            grid_cell_data.color = Color::BLACK;
+        let cell_color: Color;
+        match grid_cell_data.occupation_state {
+            Occupation::Free => { continue; }
+            Occupation::Occupied => { cell_color = Color::BLACK }
         }
+        grid_cell_data.color = cell_color;
     }
 }

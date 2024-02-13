@@ -21,7 +21,7 @@ pub fn mouse_hover_system(_cursor_moved_events: EventReader<CursorMoved>, cursor
 
     let world_pos = cursor_world_position.position;
     // Calculate the cell index
-    if grid_parameters.rect.contains(world_pos) {
+    if grid_parameters.shape_rect.contains(world_pos) {
         let hovered_cell_index = grid_parameters.calculate_cell_index_from_position(world_pos);
 
         /*       if state.prev_cell != hovered_cell_index

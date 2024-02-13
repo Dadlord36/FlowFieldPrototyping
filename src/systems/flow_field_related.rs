@@ -1,9 +1,19 @@
 use bevy::{
-    math::Quat,
-    prelude::{Color, Commands, Res, SpatialBundle, Transform},
+    math::{
+        Quat,
+        UVec2,
+        Vec2,
+    },
+    prelude::{
+        Color,
+        Commands,
+        Res,
+        SpatialBundle,
+        Transform,
+        Sprite,
+        SpriteBundle,
+    },
 };
-use bevy::math::{UVec2, Vec2};
-use bevy::prelude::{Sprite, SpriteBundle};
 use bevy_prototype_lyon::{
     draw::{Fill, Stroke},
     entity::ShapeBundle,
@@ -16,6 +26,7 @@ use game_types::{
         flow_field_components::{Arrow, FlowField},
         grid_components::definitions::{CellIndex, CellIndex2d, Grid2D},
         movement_components::{Maneuver, SurfaceCoordinate},
+        pathfinding_components::MovementSpeed,
     },
     systems::flow_driven_movement,
 };
@@ -42,6 +53,8 @@ pub fn visualize_flow_system(mut _commands: Commands, grid_parameter: Res<Grid2D
         )).insert(Arrow).insert(CellIndex::new(coordinate));
     }
 }
+
+const MOVEMENT_SPEED: f32 = 0.05;
 
 pub fn spawn_dummy_path_driven_actor(mut commands: Commands, grid_parameters: Res<Grid2D>) {
     let cell_index: UVec2 = UVec2::new(10, 10);
@@ -73,6 +86,7 @@ pub fn spawn_dummy_path_driven_actor(mut commands: Commands, grid_parameters: Re
     commands.spawn(SurfaceWalkerBundle {
         surface_coordinate: coordinate,
         occupied_cell_index: CellIndex::new(cell_index.into()),
+        movement_speed: MovementSpeed::new(MOVEMENT_SPEED),
         sprite_bundle: SpriteBundle {
             sprite: Sprite {
                 color: Color::ORANGE_RED,
@@ -91,6 +105,7 @@ pub(crate) fn spawn_movable_actor(commands: &mut Commands, cell_index: CellIndex
     commands.spawn(SurfaceWalkerBundle {
         surface_coordinate: coordinate,
         occupied_cell_index: CellIndex::from(cell_index),
+        movement_speed: MovementSpeed::new(0.5),
         sprite_bundle: SpriteBundle {
             sprite: Sprite {
                 color,

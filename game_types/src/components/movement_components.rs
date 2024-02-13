@@ -1,4 +1,5 @@
 use bevy::prelude::{Component, IVec2, Resource, Vec2};
+use bracket_pathfinding::prelude::NavigationPath;
 use derive_more::Display;
 
 pub type Coordinate = f32;

@@ -6,13 +6,13 @@ use bevy::{
 use crate::{
     components::{
         grid_components::definitions::{CellIndex2d, Grid2D},
-        movement_components::Maneuver,
-        grid_components::grid_related_traits::CoordinateIterator,
         movement_components,
+        movement_components::Maneuver,
     },
     function_libs::grid_calculations,
     tests::common,
 };
+use crate::components::grid_components::grid_related_iterators::CoordinateIterator;
 
 #[test]
 pub fn test_grid_iteration() {
@@ -113,7 +113,7 @@ fn test_surface_coord_to_occupied_cell_index_conversion() {
     let grid_parameters: Grid2D = common::construct_default_grid();
 
     for cell_index_2d in grid_parameters.iter_coordinates() {
-        let coordinate = grid_parameters.calculate_flat_surface_coordinate_from(cell_index_2d);
+        let coordinate = grid_parameters.calculate_flat_surface_coordinate_from_2d(cell_index_2d);
         let restored_index = coordinate.calculate_cell_index_on_flat_surface(&grid_parameters);
 
         assert!(grid_parameters.is_cell_index_in_grid_bounds(cell_index_2d), "cell_index_2d:{cell_index_2d} is not in grid bounds");
@@ -134,7 +134,7 @@ fn test_coordinate_to_position_on_grid_conversion()
         let grid_cell_position = grid_parameters.calculate_cell_position(cell_index_2d);
         // assert!(grid_parameters.is_position_in_grid_bounds(grid_cell_position), "grid_cell_position {grid_cell_position} is out of the grid bounds.");
 
-        let coordinate = grid_parameters.calculate_flat_surface_coordinate_from(cell_index_2d);
+        let coordinate = grid_parameters.calculate_flat_surface_coordinate_from_2d(cell_index_2d);
         let restored_position = coordinate.project_surface_coordinate_on_grid(&grid_parameters).translation.truncate();
 
         // assert!(grid_parameters.is_position_in_grid_bounds(restored_position), "restored_position:{restored_position} is not in grid bounds");
@@ -149,10 +149,10 @@ fn test_bezier_interpolate() {
     let grid_parameters: Grid2D = common::construct_default_grid();
     // Define your points here
     let maneuver_points =
-        vec![grid_parameters.calculate_flat_surface_coordinate_from(CellIndex2d::from(UVec2::new(0, 0))),
-             grid_parameters.calculate_flat_surface_coordinate_from(CellIndex2d::from(UVec2::new(0, 1))),
-             grid_parameters.calculate_flat_surface_coordinate_from(CellIndex2d::from(UVec2::new(1, 1))),
-             grid_parameters.calculate_flat_surface_coordinate_from(CellIndex2d::from(UVec2::new(1, 0)))];
+        vec![grid_parameters.calculate_flat_surface_coordinate_from_2d(CellIndex2d::from(UVec2::new(0, 0))),
+             grid_parameters.calculate_flat_surface_coordinate_from_2d(CellIndex2d::from(UVec2::new(0, 1))),
+             grid_parameters.calculate_flat_surface_coordinate_from_2d(CellIndex2d::from(UVec2::new(1, 1))),
+             grid_parameters.calculate_flat_surface_coordinate_from_2d(CellIndex2d::from(UVec2::new(1, 0)))];
 
     let mut maneuver = Maneuver::new(maneuver_points.clone());
 
@@ -183,7 +183,7 @@ fn test_bezier_interpolate() {
         let point = coordinate.project_surface_coordinate_on_grid(&grid_parameters).translation.truncate();
         println!("{point}")
     }
-    let grid_physical_size = grid_parameters.rect.size();
+    let grid_physical_size = grid_parameters.shape_rect.size();
     println!("Grid Physical Size: {grid_physical_size}");
     println!("{:?}", rect);
 

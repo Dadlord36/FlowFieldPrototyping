@@ -7,7 +7,7 @@ use bevy::{
 use crate::{
     components::{
         grid_components::definitions::{CellIndex2d, Grid2D},
-        movement_components::{Coordinate, SurfaceCoordinate}
+        movement_components::{Coordinate, SurfaceCoordinate},
     }
 };
 
@@ -51,15 +51,15 @@ impl SurfaceCoordinate {
     #[inline]
     pub fn calculate_flat_surface_coordinate_from_pos(grid_parameters: &Grid2D, world_position: Vec2) -> Self {
         let hovered_cell_index = grid_parameters.calculate_cell_index_from_position(world_position);
-        return grid_parameters.calculate_flat_surface_coordinate_from(hovered_cell_index);
+        return grid_parameters.calculate_flat_surface_coordinate_from_2d(hovered_cell_index);
     }
 
     #[inline]
     pub fn project_surface_coordinate_on_grid(&self, grid: &Grid2D) -> Transform {
-        let proportional_latitude = self.latitude * (grid.rect.width() as Coordinate - grid.cell_size.x as Coordinate)
-            + (grid.rect.min.x + grid.cell_size.x / 2.0) as Coordinate;
-        let proportional_longitude = self.longitude * (grid.rect.height() as Coordinate - grid.cell_size.y as Coordinate)
-            + (grid.rect.min.y + grid.cell_size.y / 2.0) as Coordinate;
+        let proportional_latitude = self.latitude * (grid.shape_rect.width() as Coordinate - grid.cell_size.x as Coordinate)
+            + (grid.shape_rect.min.x + grid.cell_size.x / 2.0) as Coordinate;
+        let proportional_longitude = self.longitude * (grid.shape_rect.height() as Coordinate - grid.cell_size.y as Coordinate)
+            + (grid.shape_rect.min.y + grid.cell_size.y / 2.0) as Coordinate;
 
         let position = Vec2::new(proportional_latitude as f32, proportional_longitude as f32);
 

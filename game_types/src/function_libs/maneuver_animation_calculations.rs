@@ -1,14 +1,12 @@
 use bevy::{
     math::{Quat, Vec3},
-    prelude::{Transform, UVec2, Vec2},
-};
-use crate::{
-    components::{
-        grid_components::definitions::{CellIndex2d, Grid2D},
-        movement_components::{Maneuver, SurfaceCoordinate},
-    }
+    prelude::{Transform, Vec2},
 };
 
+use crate::components::{
+    grid_components::definitions::{CellIndex2d, Grid2D},
+    movement_components::{Maneuver, SurfaceCoordinate},
+};
 
 impl Maneuver {
     pub fn new(surface_coordinates: Vec<SurfaceCoordinate>) -> Self {
@@ -18,17 +16,23 @@ impl Maneuver {
         }
     }
 
+    pub fn set_coordinates(&mut self, maneuver_coordinates: Vec<SurfaceCoordinate>)
+    {
+        self.path_points = maneuver_coordinates;
+        self.progress = 0.0;
+    }
+
     pub fn zigzag(grid_parameters: &Grid2D) -> Self {
         let mut maneuver_points = vec![];
 
         for i in 0..25 {
             if i % 2 == 0 {
                 for j in 0..25 {
-                    maneuver_points.push(grid_parameters.calculate_flat_surface_coordinate_from(CellIndex2d::new(i, j)));
+                    maneuver_points.push(grid_parameters.calculate_flat_surface_coordinate_from_2d(CellIndex2d::new(i, j)));
                 }
             } else {
                 for j in (0..25).rev() {
-                    maneuver_points.push(grid_parameters.calculate_flat_surface_coordinate_from(CellIndex2d::new(i, j)));
+                    maneuver_points.push(grid_parameters.calculate_flat_surface_coordinate_from_2d(CellIndex2d::new(i, j)));
                 }
             }
         }
@@ -49,25 +53,25 @@ impl Maneuver {
 
         while x_start <= x_end && y_start <= y_end {
             for i in y_start..=y_end {
-                maneuver_points.push(grid_parameters.calculate_flat_surface_coordinate_from(CellIndex2d::new(x_start, i)));
+                maneuver_points.push(grid_parameters.calculate_flat_surface_coordinate_from_2d(CellIndex2d::new(x_start, i)));
             }
             x_start += 1;
 
             for i in x_start..=x_end {
-                maneuver_points.push(grid_parameters.calculate_flat_surface_coordinate_from(CellIndex2d::new(i, y_end)));
+                maneuver_points.push(grid_parameters.calculate_flat_surface_coordinate_from_2d(CellIndex2d::new(i, y_end)));
             }
             y_end -= 1;
 
             if x_start <= x_end {
                 for i in (y_start..=y_end).rev() {
-                    maneuver_points.push(grid_parameters.calculate_flat_surface_coordinate_from(CellIndex2d::new(x_end, i)));
+                    maneuver_points.push(grid_parameters.calculate_flat_surface_coordinate_from_2d(CellIndex2d::new(x_end, i)));
                 }
                 x_end -= 1;
             }
 
             if y_start <= y_end {
                 for i in (x_start..=x_end).rev() {
-                    maneuver_points.push(grid_parameters.calculate_flat_surface_coordinate_from(CellIndex2d::new(i, y_start)));
+                    maneuver_points.push(grid_parameters.calculate_flat_surface_coordinate_from_2d(CellIndex2d::new(i, y_start)));
                 }
                 y_start += 1;
             }
@@ -234,6 +238,9 @@ pub fn catmull_rom_interpolate_transforms(progress: f32, points: &[Transform]) -
 
 #[inline]
 fn calculate_interpolation_parameters(progress: f32, points_num: usize) -> (usize, f32, usize, usize, usize, usize) {
+    //assert there are some points
+    assert!(points_num > 0, "There must be at least one point");
+
     let num_sections = points_num - 1;
     let t_sec = f32::floor(progress * num_sections as f32) as usize;
     let t = progress * num_sections as f32 - (t_sec as f32);

@@ -15,6 +15,7 @@ use game_types::{
         flow_field_components::FlowField,
         grid_components::definitions::{Grid2D, GridRelatedData},
         world_manipulation_components::{CursorWorldPosition, HoverCell},
+        movement_components,
     },
     systems::{
         flow_driven_movement::*,
@@ -23,7 +24,6 @@ use game_types::{
         selection_related::*,
     },
 };
-use game_types::components::movement_components;
 use systems::{
     flow_field_related::*,
     grid_related::*,
@@ -65,12 +65,11 @@ fn main() {
         }))
         // .add_plugins(bevy_game::GamePlugin)
         .add_plugins(ShapePlugin)
-        .add_systems(Startup, (setup, spawned_colorized_cells_system, visualize_flow_system, reset_cells_colorization,
-                               spawn_dummy_path_driven_actor).chain())
+        .add_systems(Startup, (setup, spawned_colorized_cells_system, visualize_flow_system,
+                               reset_cells_colorization, spawn_dummy_path_driven_actor).chain())
         .add_systems(PreUpdate, (reset_cells_colorization, capture_cursor_position, mouse_hover_system,
-                                 move_camera_system, avoidance_maneuver_system,
-                                 path_movement_system, adjust_coordinate_system,
-                                 apply_surface_coordinate_system,
+                                 move_camera_system, avoidance_maneuver_system, path_movement_system,
+                                 adjust_coordinate_system, apply_surface_coordinate_system,
                                  grid_relation_system).chain())
         .add_systems(Update, (cell_occupation_highlight_system, colorize_obstacles_system, apply_color_to_cell).chain())
         .add_systems(Update, (flow_explosion_system, rotate_flow_arrows_system).chain())

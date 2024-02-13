@@ -4,6 +4,7 @@ use game_types::{
     components::{
         grid_components::definitions::CellIndex,
         movement_components::{MoveTag, SurfaceCoordinate},
+        pathfinding_components::MovementSpeed,
     }
 };
 
@@ -13,4 +14,5 @@ pub struct SurfaceWalkerBundle {
     pub occupied_cell_index: CellIndex,
     pub sprite_bundle: SpriteBundle,
     pub move_tag: MoveTag,
+    pub movement_speed: MovementSpeed,
 }

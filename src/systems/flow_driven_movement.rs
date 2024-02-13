@@ -25,10 +25,12 @@ pub fn spawn_moving_cubes(mut commands: Commands, grid_parameters: Res<Grid2D>)
     }
 }
 
-fn spawn_movable_actor_on_grid(mut commands: &mut Commands, grid_parameters: &Res<Grid2D>, cell_index: CellIndex2d, color: Color)
+fn spawn_movable_actor_on_grid(mut commands: &mut Commands, grid_parameters: &Res<Grid2D>,
+                               cell_index: CellIndex2d, color: Color)
 {
     let (coordinate, coordinate_world_transform, actor_size) =
         calculate_coordination_data(&grid_parameters, cell_index);
 
-    flow_field_related::spawn_movable_actor(&mut commands, cell_index, color, actor_size, coordinate, coordinate_world_transform);
+    flow_field_related::spawn_movable_actor(&mut commands, cell_index, color, actor_size, coordinate,
+                                            coordinate_world_transform);
 }

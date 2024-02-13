@@ -1,6 +1,12 @@
-use bevy::math::URect;
-use bevy::math::Vec2;
-use ndarray::{Array2, ArrayView2, s};
+use std::ops::Sub;
+use bevy::{
+    math::{
+        URect,
+        Vec2,
+    }
+};
+use bevy::math::UVec2;
+use ndarray::{Array2, ArrayView2, ArrayViewMut2, s};
 use num_traits::AsPrimitive;
 
 use crate::components::grid_components::definitions::{CellIndex1d, CellIndex2d, Grid2D};
@@ -58,10 +64,28 @@ pub fn slice_2d_array<T>(data: &Array2<T>, inclusive_rect: URect) -> ArrayView2<
     slice
 }
 
+#[inline]
+pub fn slice_2d_array_mut<T>(data: &mut Array2<T>, inclusive_rect: URect) -> ArrayViewMut2<T> {
+    let min: (usize, usize) = (inclusive_rect.min.x as usize, inclusive_rect.min.y as usize);
+    let max: (usize, usize) = (inclusive_rect.max.x as usize, inclusive_rect.max.y as usize);
+
+    assert!(data.dim().0 > max.0 && data.dim().1 > max.1, "The provided bounds are out of the original grid's range.");
+
+    let slice = data.slice_mut(s![min.0..=max.0, min.1..=max.1]);
+    slice
+}
+
 pub fn euclidean_distance(a: Vec2, b: Vec2) -> f32 {
     let dx = a.x - b.x;
     let dy = a.y - b.y;
     ((dx * dx) + (dy * dy)).sqrt()
+}
+
+#[inline]
+pub fn global_to_local(global_index: CellIndex2d, segment: URect) -> CellIndex2d {
+    let local_x = global_index.x.sub(segment.min.x);
+    let local_y = global_index.y.sub(segment.min.y);
+    return CellIndex2d { x: local_x, y: local_y };
 }
 
 pub fn is_position_within_bounds(grid_position_center: Vec2, grid_parameter: &Grid2D, position: Vec2) -> bool {
@@ -74,4 +98,11 @@ pub fn is_position_within_bounds(grid_position_center: Vec2, grid_parameter: &Gr
         && position.y >= bottom_left_corner.y
         && position.x <= top_right_corner.x
         && position.y <= top_right_corner.y
+}
+
+pub fn normalize_rect(rect: URect) -> URect {
+    URect {
+        min: UVec2::ZERO,
+        max: UVec2 { x: rect.width(), y: rect.height() },
+    }
 }

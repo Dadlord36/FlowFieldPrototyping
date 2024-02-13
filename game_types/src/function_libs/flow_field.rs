@@ -77,8 +77,8 @@ impl FlowField {
                 cell_index_2d.y = y.into();
 
                 self.field[&cell_index_2d] = apply_explosion_to_flow_vector(self.field[&cell_index_2d],
-                                                                           cell_index_2d.into(), explosion_parameters.impact_center_cell_index,
-                                                                           grid_parameters.cell_size, 0.9);
+                                                                            cell_index_2d.into(), explosion_parameters.impact_center_cell_index,
+                                                                            grid_parameters.cell_size, 0.9);
             }
         }
     }
