@@ -13,6 +13,7 @@ impl Maneuver {
         Self {
             path_points: surface_coordinates,
             progress: 0.0,
+            last_destination: Default::default(),
         }
     }
 
@@ -41,6 +42,7 @@ impl Maneuver {
         Maneuver {
             path_points: maneuver_points,
             progress: 0.0,
+            last_destination: Default::default(),
         }
     }
 
@@ -80,6 +82,7 @@ impl Maneuver {
         Maneuver {
             path_points: maneuver_points,
             progress: 0.0,
+            last_destination: Default::default(),
         }
     }
 

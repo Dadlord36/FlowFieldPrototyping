@@ -42,6 +42,7 @@ use crate::{
     },
     systems::{CELLS_IN_FRONT, PATHFINDING_RECT},
 };
+use crate::components::pathfinding_components::Pathfinder;
 
 pub fn calculate_coordination_data(grid_parameters: &Res<Grid2D>, cell_index: CellIndex2d) -> (SurfaceCoordinate, Transform, Vec2) {
     let coordinate = grid_parameters.calculate_flat_surface_coordinate_from_2d(cell_index);
@@ -87,34 +88,37 @@ pub fn avoidance_maneuver_system(mut _commands: Commands, grid: Res<Grid2D>,
             grid_related_data.set_color_for_area(area, Color::GRAY);
 
             let pathfinding_map: PathfindingMap = grid_related_data.create_pathfinding_map_on(&grid, area);
-            let path_description_normalized =
+            let path_description_local: Option<Pathfinder> =
                 pathfinding_map.find_destination_in_direction(cell_index.index, *main_move_direction);
 
-            if path_description_normalized.is_none() {
-                info!("No valid destination found");
+            if path_description_local.is_none() {
+                // info!("No valid destination found");
                 continue;
             }
-            let path_description_normalized = path_description_normalized.unwrap();
+            let path_description_local = path_description_local.unwrap();
+            if path_description_local == _maneuver.last_destination {
+                return;
+            }
+            _maneuver.last_destination = path_description_local.clone();
+            let path_description_global = pathfinding_map.convert_to_global(path_description_local);
 
-            let (nav_path) =
-                pathfinding_map.calculate_path_coordinates_global(path_description_normalized);
+            let nav_path: Option<Vec<CellIndex2d>> =
+                pathfinding_map.calculate_path_coordinates_global(path_description_local);
 
             if nav_path.is_none() {
                 info!("No valid path found");
+                pathfinding_map.visualize_key_points_on_grid(&grid, &path_description_global, &grid_related_data);
                 continue;
             }
-            let path_points = nav_path.unwrap().0;
-            path_description_normalized.visualize_path_on_grid(&grid, &grid_related_data, &path_points);
+            let path_points_global = nav_path.unwrap();
+            pathfinding_map.visualize_path_on_grid(&grid, &path_description_global,
+                                                   &grid_related_data, &path_points_global);
 
-            if path_points.len() == 0 {
-                info!("No valid path found");
-                continue;
-            }
+            let global_path_points =
+                grid.calculate_surface_coordinates_for_2d(&path_points_global);
 
-            let global_path_points = grid.calculate_surface_coordinates_for_2d(&path_points);
-
-            grid_related_data.set_color_for_index(&path_description_normalized.start, Color::RED);
-            grid_related_data.set_color_for_index(&path_description_normalized.end, Color::MIDNIGHT_BLUE);
+            grid_related_data.set_color_for_index(&path_description_local.start, Color::RED);
+            grid_related_data.set_color_for_index(&path_description_local.end, Color::MIDNIGHT_BLUE);
 
             _maneuver.set_coordinates(global_path_points);
             _commands.entity(entity).insert(PerformManeuver::default());
@@ -127,7 +131,7 @@ pub fn path_movement_system(mut _commands: Commands,
                             mut query: Query<(Entity, &mut SurfaceCoordinate, &mut Maneuver),
                                 (With<MoveTag>, With<PerformManeuver>)>) {
     for (_entity, mut coordinate, mut maneuver) in query.iter_mut() {
-        *coordinate = maneuver.catmull_rom_interpolate_along_path_ping_pong(time.elapsed_seconds() * 0.5);
+        *coordinate = maneuver.catmull_rom_interpolate_along_path(0.005);
         if maneuver.is_done() {
             _commands.entity(_entity).remove::<PerformManeuver>();
         }

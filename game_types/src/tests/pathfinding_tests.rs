@@ -1,22 +1,19 @@
-use bracket_pathfinding::prelude::NavigationPath;
-
+use bevy::math::UVec2;
 use crate::{
     components::{
-        grid_components::{
-            definitions::{
-                CellIndex2d,
-                Grid2D,
-                GridRelatedData,
-                Occupation,
-            },
-            definitions::GridCellData,
+        grid_components::definitions::{
+            CellIndex2d,
+            Grid2D,
+            GridRelatedData
+            ,
         },
         movement_components::Direction,
-        pathfinding_components::{Pathfinder, PathfindingMap},
+        pathfinding_components::PathfindingMap,
     },
     tests::common,
 };
-use colored::*;
+
+const PATHFINDING_RECT: UVec2 = UVec2::new(10, 10);
 
 #[test]
 fn test_generate_map() {
@@ -24,15 +21,15 @@ fn test_generate_map() {
     let mut grid_related_data = GridRelatedData::new(&grid);
     grid_related_data.fill_with_random_obstacle_pattern(&grid);
 
-    let map: PathfindingMap =
-        grid_related_data.create_pathfinding_map_on(&grid, grid.indexes_rect);
+    let map: PathfindingMap = grid_related_data.create_pathfinding_map_on(&grid, grid.indexes_rect);
     let mut start_point: CellIndex2d = grid.indexes_rect.max.into();
     start_point.y -= start_point.x / 2;
+    let area = grid.calculate_square_area_wrapped_from(start_point, PATHFINDING_RECT);
+
     let pathfinder = map.find_destination_in_direction(start_point, Direction::West);
     //assert that pathfinder is some
     assert!(pathfinder.is_some(), "No pathfinder found");
     let pathfinder = pathfinder.unwrap();
-
 
     let result = map.calculate_path_coordinates_global(pathfinder);
     //assert result is some
@@ -43,8 +40,7 @@ fn test_generate_map() {
     let path_coordinates = result.0;
 
     assert!(path_coordinates.len() > 0, "No steps were made");
-
-    pathfinder.visualize_path_on_grid(&grid, &grid_related_data, &path_coordinates);
+    pathfinder.visualize_path_on_grid(&grid, &grid_related_data, &path_coordinates, &area);
 }
 
 //Visualize grid with obstacles and a path on it

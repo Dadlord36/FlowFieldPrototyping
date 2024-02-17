@@ -1,6 +1,7 @@
 use bevy::prelude::{Component, IVec2, Resource, Vec2};
 use bracket_pathfinding::prelude::NavigationPath;
 use derive_more::Display;
+use crate::components::pathfinding_components::Pathfinder;
 
 pub type Coordinate = f32;
 
@@ -141,4 +142,5 @@ pub struct CoordinateBounds {
 pub struct Maneuver {
     pub path_points: Vec<SurfaceCoordinate>,
     pub progress: f32,
+    pub last_destination: Pathfinder,
 }
