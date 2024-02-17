@@ -43,7 +43,8 @@ pub fn spawned_colorized_cells_system(mut commands: Commands, grid_parameter: Re
     }
 }
 
-pub fn colorize_obstacles_system(grid_parameters: Res<Grid2D>, mut grid_related_data: ResMut<GridRelatedData>) {
+pub fn colorize_obstacles_system(grid_parameters: Res<Grid2D>,
+                                 mut grid_related_data: ResMut<GridRelatedData>) {
     for coordinate in grid_parameters.iter_coordinates() {
         let grid_cell_data = grid_related_data.get_data_at_mut(&coordinate);
         let cell_color: Color;

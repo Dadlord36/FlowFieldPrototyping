@@ -1,5 +1,9 @@
 use bevy::{
-    math::{Rect, Vec2},
+    math::{
+        Rect,
+        Vec2,
+        IVec2,
+    },
     prelude::{
         Color,
         Component,
@@ -24,7 +28,8 @@ impl Default for Occupation {
     }
 }
 
-#[derive(Clone, Copy, Default, Eq, PartialEq, Add, AddAssign, Sub, Rem, From, Into)]
+#[derive(Clone, Copy, Default, Eq, Hash, Ord, PartialEq, PartialOrd,
+Add, AddAssign, Sub, Rem, From, Into)]
 pub struct CellIndex2d {
     pub x: CellIndex1d,
     pub y: CellIndex1d,
@@ -32,12 +37,20 @@ pub struct CellIndex2d {
 
 #[derive(Copy, Clone, Default, Display)]
 #[display("parent_grid: {:?};  \
-segment_grid: {:?}", parent_grid, segment_grid)]
+normalized_grid: {:?}", parent_grid, bounds)]
 pub struct GridSegment {
     pub(super) parent_grid: URect,
-    pub(super) segment_grid: URect,
+    pub(super) offset: IVec2,
+    // Offset from parent grid to segment grid
     pub(super) bounds: URect,
 }
+
+impl GridSegment {
+    pub fn get_offset(&self) -> IVec2 {
+        self.offset
+    }
+}
+
 
 #[derive(Resource, Clone)]
 pub struct Grid2D {
@@ -52,7 +65,6 @@ pub struct Grid2D {
     pub max_column_index: u32,
     pub(crate) indexes: Array2<CellIndex2d>,
 }
-
 
 #[derive(Clone, Default)]
 pub struct GridCellData {

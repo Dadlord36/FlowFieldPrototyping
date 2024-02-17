@@ -34,6 +34,7 @@ use crate::{
     },
 };
 use crate::function_libs::grid_calculations;
+use crate::function_libs::grid_calculations::normalize_rect;
 
 use super::definitions::{CellIndex1d, CellIndex2d, Grid2D, GridCellData, GridRelatedData, GridSegment};
 
@@ -71,6 +72,18 @@ impl Add<IVec2> for CellIndex2d {
         }
     }
 }
+
+impl Sub<IVec2> for CellIndex2d {
+    type Output = CellIndex2d;
+
+    fn sub(self, rhs: IVec2) -> Self::Output {
+        CellIndex2d {
+            x: (self.x as i32 - rhs.x) as u32,
+            y: (self.y as i32 - rhs.y) as u32,
+        }
+    }
+}
+
 
 impl AddAssign<IVec2> for CellIndex2d {
     fn add_assign(&mut self, rhs: IVec2) {
@@ -147,6 +160,10 @@ impl CellIndex2d {
         }
     }
 
+    pub fn distance(&self, other: &CellIndex2d) -> u32 {
+        self.x.abs_diff(other.x) + self.y.abs_diff(other.y)
+    }
+
     pub fn normalize(&self) -> Self {
         let length = ((self.x.pow(2) + self.y.pow(2)) as f32).sqrt() as u32;
         Self {
@@ -179,12 +196,16 @@ unsafe impl NdIndex<Ix2> for &CellIndex2d {
 
 impl GridRelatedData {
     pub fn new(grid_parameters: &Grid2D) -> Self {
-        GridRelatedData { data: Array2::default((grid_parameters.column_number as usize, grid_parameters.row_number as usize)) }
+        GridRelatedData {
+            data: Array2::default((grid_parameters.column_number as usize,
+                                   grid_parameters.row_number as usize))
+        }
     }
 
     pub fn create_pathfinding_map_on(&self, target_grid: &Grid2D, inclusive_rect: URect) -> PathfindingMap {
         let slice = self.get_segment_view_of(inclusive_rect);
-        PathfindingMap::new(target_grid.form_segment_for(inclusive_rect), slice, inclusive_rect)
+        PathfindingMap::new(target_grid.form_segment_for(inclusive_rect), slice, inclusive_rect,
+                            normalize_rect(inclusive_rect))
     }
 
     pub fn has_obstacle_in(&self, area: URect) -> bool {
@@ -197,6 +218,10 @@ impl GridRelatedData {
         }
 
         return has;
+    }
+
+    pub fn set_color_for_index(&mut self, cell_index2d: &CellIndex2d, color: Color) {
+        self.data[cell_index2d].color = color
     }
 
     pub fn get_segment_view_of(&self, area: URect) -> ArrayView2<GridCellData> {
@@ -214,10 +239,15 @@ impl GridRelatedData {
         }
     }
 
+    pub fn set_color_at(&mut self, cell_index2d: CellIndex2d, color: Color) {
+        self[cell_index2d].color = color;
+    }
+
     pub fn fill_with_random_obstacle_pattern(&mut self, grid_parameters: &Grid2D) {
         const BORDER_RANGE: usize = 5;
         let mut rng = rand::thread_rng();
-        let shape = (grid_parameters.row_number as usize, grid_parameters.column_number as usize);
+        let shape = (grid_parameters.row_number as usize,
+                     grid_parameters.column_number as usize);
         self.data = Array2::from_shape_fn(shape, |idx| {
             let (row, column) = idx;
             let occupation = if row < BORDER_RANGE
@@ -258,75 +288,63 @@ impl IndexMut<CellIndex2d> for GridRelatedData {
 }
 
 impl GridSegment {
-    pub fn to_local_index(&self, global_cell_index2d: CellIndex2d) -> CellIndex2d {
-        let local_cell_index2d = CellIndex2d {
-            x: global_cell_index2d.x - self.segment_grid.min.x,
-            y: global_cell_index2d.y - self.segment_grid.min.y,
+    pub fn new(parent: URect, child: URect) -> Self {
+        let offset = IVec2 {
+            x: (child.min.x - parent.min.x) as i32,
+            y: (child.min.y - parent.min.y) as i32,
         };
-        local_cell_index2d
+
+        let bounds = URect::from_corners(UVec2::ZERO, child.size());
+
+        Self {
+            parent_grid: parent,
+            offset,
+            bounds,
+        }
     }
 
-    pub fn from_local_to_global_index(&self, local_cell_index2d: CellIndex2d) -> CellIndex2d {
-        let global_cell_index = CellIndex2d {
-            x: local_cell_index2d.x + self.segment_grid.min.x,
-            y: local_cell_index2d.y + self.segment_grid.min.y,
-        };
-        global_cell_index
+    // Transform from global index to local index
+    pub fn global_to_local_index(&self, global_index: CellIndex2d) -> CellIndex2d {
+        CellIndex2d {
+            x: (global_index.x as i32 - self.offset.x) as CellIndex1d,
+            y: (global_index.y as i32 - self.offset.y) as CellIndex1d,
+        }
     }
 
-    pub fn from_normalized_to_local_index(&self, normalized_index: CellIndex2d) -> CellIndex2d {
-        let origin: CellIndex2d = self.segment_grid.min.into();
-        let local_cell_index2d = normalized_index + origin;
-        local_cell_index2d
+    // Transform from local index to global index
+    pub fn local_to_global_index(&self, local_index: CellIndex2d) -> CellIndex2d {
+        CellIndex2d {
+            x: (local_index.x as i32 + self.offset.x) as CellIndex1d,
+            y: (local_index.y as i32 + self.offset.y) as CellIndex1d,
+        }
     }
 
-    pub fn from_normalized_to_global_index(&self, normalized_index: CellIndex2d) -> CellIndex2d {
-        let local_cell_index2d = self.from_normalized_to_local_index(normalized_index);
-        self.from_local_to_global_index(local_cell_index2d)
+    pub fn convert_1d_to_2d(&self, index: CellIndex1d) -> CellIndex2d {
+        grid_calculations::calculate_2d_index(index, self.bounds.width())
     }
 
-    pub fn from_local_to_normalized_index(&self, local_cell_index2d: CellIndex2d) -> CellIndex2d {
-        let origin: CellIndex2d = self.segment_grid.min.into();
-        let normalized_index = local_cell_index2d - origin;
-        normalized_index
-    }
-
-    pub fn from_global_to_normalized_index(&self, global_cell_index2d: CellIndex2d) -> CellIndex2d {
-        let local_cell_index2d = self.to_local_index(global_cell_index2d);
-        self.from_local_to_normalized_index(local_cell_index2d)
-    }
-
-    //Calculate the line of cell in direction starting from cell:
+    // calculate_line_of_cells_in_direction
     pub fn calculate_line_of_cells_in_direction(
         &self,
-        starting_cell: CellIndex2d,
+        start_cell: CellIndex2d,
         direction: IVec2,
         length: u32,
     ) -> URect {
-        let starting_cell_index = self.to_local_index(starting_cell);
+        let starting_cell_index = self.global_to_local_index(start_cell);
         let ending_cell_index = starting_cell_index + (direction * (length - 1) as i32);
         URect::from_corners(starting_cell_index.into(), ending_cell_index.into())
     }
 
-    #[inline]
-    pub fn normalized_to_global_index(&self, normalized_cell_index1d: CellIndex1d) -> CellIndex2d {
-        let normalized_cell_index_2d = grid_calculations::calculate_2d_index(normalized_cell_index1d,
-                                                                             self.bounds.width());
-        self.from_normalized_to_global_index(normalized_cell_index_2d)
-    }
-
+    // contains_global
     #[inline]
     pub fn contains_global(&self, cell_index2d: CellIndex2d) -> bool {
-        self.parent_grid.contains(cell_index2d.into())
+        let local_index = self.global_to_local_index(cell_index2d);
+        self.contains_local(local_index)
     }
 
+    // contains_local
     #[inline]
-    pub fn contains_local(&self, cell_index2d: CellIndex2d) -> bool {
-        self.segment_grid.contains(cell_index2d.into())
-    }
-
-    #[inline]
-    pub fn contains_normalized(&self, cell_index2d: CellIndex2d) -> bool {
-        self.bounds.contains(cell_index2d.into())
+    pub fn contains_local(&self, index: CellIndex2d) -> bool {
+        self.bounds.contains(index.into())
     }
 }

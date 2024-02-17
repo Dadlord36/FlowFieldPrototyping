@@ -1,6 +1,7 @@
 use std::borrow::Borrow;
 
 use bevy::{
+    log::info,
     math::DVec2,
     prelude::{
         Color,
@@ -15,28 +16,32 @@ use bevy::{
         With,
     },
 };
-use bevy::log::info;
+use bevy::prelude::Without;
 
-use crate::components::{
-    flow_field_components::FlowField,
-    grid_components::definitions::{
-        CellIndex,
-        CellIndex2d,
-        Grid2D,
-        GridRelatedData,
-        Occupation,
+use crate::{
+    components::{
+        flow_field_components::FlowField,
+        grid_components::definitions::{
+            CellIndex,
+            CellIndex2d,
+            Grid2D,
+            GridRelatedData,
+            Occupation,
+        },
+        movement_components::{
+            Direction,
+            Maneuver,
+            MoveTag,
+            PerformManeuver,
+            SurfaceCoordinate,
+        },
+        pathfinding_components::{
+            MovementSpeed,
+            PathfindingMap,
+        },
     },
-    movement_components::{
-        Direction,
-        Maneuver,
-        MoveTag,
-        PerformManeuver,
-        SurfaceCoordinate,
-    },
-    pathfinding_components::MovementSpeed,
+    systems::{CELLS_IN_FRONT, PATHFINDING_RECT},
 };
-use crate::components::pathfinding_components::PathfindingMap;
-use crate::systems::{CELLS_IN_FRONT, PATHFINDING_RECT};
 
 pub fn calculate_coordination_data(grid_parameters: &Res<Grid2D>, cell_index: CellIndex2d) -> (SurfaceCoordinate, Transform, Vec2) {
     let coordinate = grid_parameters.calculate_flat_surface_coordinate_from_2d(cell_index);
@@ -47,9 +52,11 @@ pub fn calculate_coordination_data(grid_parameters: &Res<Grid2D>, cell_index: Ce
 }
 
 pub fn adjust_coordinate_system(time: Res<Time>, flow_field: Res<FlowField>,
-                                mut query: Query<(&mut SurfaceCoordinate, &CellIndex, &MovementSpeed), With<MoveTag>>)
+                                mut query: Query<(&mut SurfaceCoordinate, &CellIndex, &MovementSpeed),
+                                    With<MoveTag>>)
 {
-    for (mut surface_calculations, cell_index, speed) in query.iter_mut() {
+    for (mut surface_calculations, cell_index, speed)
+    in query.iter_mut() {
         let direction: DVec2 = DVec2::from(flow_field.get_field_at(cell_index.as_ref()));
 
         let speed_mul = (speed.value * time.delta_seconds()) as f64;
@@ -58,7 +65,8 @@ pub fn adjust_coordinate_system(time: Res<Time>, flow_field: Res<FlowField>,
 }
 
 pub fn apply_surface_coordinate_system(grid_parameters: Res<Grid2D>,
-                                       mut query: Query<(&mut Transform, &SurfaceCoordinate), With<MoveTag>>) {
+                                       mut query: Query<(&mut Transform,
+                                                         &SurfaceCoordinate), With<MoveTag>>) {
     for (mut transform, coordinate) in query.iter_mut() {
         *transform = coordinate.project_surface_coordinate_on_grid(&grid_parameters);
     }
@@ -67,53 +75,64 @@ pub fn apply_surface_coordinate_system(grid_parameters: Res<Grid2D>,
 pub fn avoidance_maneuver_system(mut _commands: Commands, grid: Res<Grid2D>,
                                  mut grid_related_data: ResMut<GridRelatedData>,
                                  main_move_direction: Res<Direction>,
-                                 mut query: Query<(Entity, &CellIndex, &mut Maneuver), With<MoveTag>>) {
+                                 mut query: Query<(Entity, &CellIndex, &mut Maneuver),
+                                     (With<MoveTag>, Without<PerformManeuver>)>) {
     for (entity, cell_index, mut _maneuver) in query.iter_mut() {
         let straight_path_area = grid.calculate_line_infront_from(cell_index.index,
-                                                                  main_move_direction.as_vector(), CELLS_IN_FRONT);
+                                                                  main_move_direction.as_vector(),
+                                                                  CELLS_IN_FRONT);
 
         if grid_related_data.has_obstacle_in(straight_path_area) {
             let area = grid.calculate_square_area_wrapped_from(cell_index.index, PATHFINDING_RECT);
             grid_related_data.set_color_for_area(area, Color::GRAY);
 
             let pathfinding_map: PathfindingMap = grid_related_data.create_pathfinding_map_on(&grid, area);
-            let path_description_normalized = pathfinding_map.find_destination_in_direction(cell_index.index,
-                                                                                            *main_move_direction);
+            let path_description_normalized =
+                pathfinding_map.find_destination_in_direction(cell_index.index, *main_move_direction);
 
             if path_description_normalized.is_none() {
                 info!("No valid destination found");
                 continue;
             }
+            let path_description_normalized = path_description_normalized.unwrap();
 
-            let (nav_path, steps) =
-                pathfinding_map.calculate_path_coordinates_global(&grid, path_description_normalized.unwrap());
+            let (nav_path) =
+                pathfinding_map.calculate_path_coordinates_global(path_description_normalized);
 
-            if nav_path.success == false {
+            if nav_path.is_none() {
+                info!("No valid path found");
+                continue;
+            }
+            let path_points = nav_path.unwrap().0;
+            path_description_normalized.visualize_path_on_grid(&grid, &grid_related_data, &path_points);
+
+            if path_points.len() == 0 {
                 info!("No valid path found");
                 continue;
             }
 
-            _maneuver.set_coordinates(steps);
+            let global_path_points = grid.calculate_surface_coordinates_for_2d(&path_points);
+
+            grid_related_data.set_color_for_index(&path_description_normalized.start, Color::RED);
+            grid_related_data.set_color_for_index(&path_description_normalized.end, Color::MIDNIGHT_BLUE);
+
+            _maneuver.set_coordinates(global_path_points);
             _commands.entity(entity).insert(PerformManeuver::default());
         }
     }
 }
 
-pub fn path_movement_system(mut _commands: Commands, time: Res<Time>,
-                            mut query: Query<(Entity,
-                                              &mut SurfaceCoordinate,
-                                              &mut Maneuver), (With<MoveTag>, With<PerformManeuver>)>) {
+pub fn path_movement_system(mut _commands: Commands,
+                            time: Res<Time>,
+                            mut query: Query<(Entity, &mut SurfaceCoordinate, &mut Maneuver),
+                                (With<MoveTag>, With<PerformManeuver>)>) {
     for (_entity, mut coordinate, mut maneuver) in query.iter_mut() {
-        *coordinate = maneuver.catmull_rom_interpolate_along_path_ping_pong(time.elapsed_seconds() * 0.05);
+        *coordinate = maneuver.catmull_rom_interpolate_along_path_ping_pong(time.elapsed_seconds() * 0.5);
         if maneuver.is_done() {
             _commands.entity(_entity).remove::<PerformManeuver>();
         }
     }
 }
-
-/*pub fn movement_avoidance_system(mut query: Query<()>) {
-
-}*/
 
 pub fn grid_relation_system(grid_parameters: Res<Grid2D>, mut query: Query<(&mut CellIndex,
                                                                             &SurfaceCoordinate), With<MoveTag>>)
@@ -123,13 +142,15 @@ pub fn grid_relation_system(grid_parameters: Res<Grid2D>, mut query: Query<(&mut
     }
 }
 
-
-pub fn cell_occupation_highlight_system(mut grid_cell_data: ResMut<GridRelatedData>, grid_parameters: Res<Grid2D>,
-                                        main_movement_direction: Res<Direction>, query: Query<&CellIndex, With<MoveTag>>)
+pub fn cell_occupation_highlight_system(mut grid_cell_data: ResMut<GridRelatedData>,
+                                        grid_parameters: Res<Grid2D>,
+                                        main_movement_direction: Res<Direction>,
+                                        query: Query<&CellIndex, With<MoveTag>>)
 {
     for cell_index in query.iter() {
         let segment_area = grid_parameters.calculate_line_from(cell_index.index.into(),
-                                                               main_movement_direction.as_vector(), CELLS_IN_FRONT);
+                                                               main_movement_direction.as_vector(),
+                                                               CELLS_IN_FRONT);
         let segment_view = grid_parameters.get_indexes_segment(segment_area);
 
         for segment_cell_index in segment_view {

@@ -13,7 +13,6 @@ use crate::{
     },
     function_libs::grid_calculations::{calculate_1d_index, calculate_2d_index, slice_2d_array},
 };
-use crate::function_libs::grid_calculations::normalize_rect;
 
 impl Grid2D {
     pub fn iter_coordinates(&self) -> CoordinateIterator {
@@ -35,6 +34,10 @@ impl Grid2D {
     pub fn new(column_number: u32, row_number: u32, cell_size: Vec2) -> Self {
         let grid_size = Vec2::new(column_number as f32 * cell_size.x,
                                   row_number as f32 * cell_size.y);
+
+        let max_column_index = column_number - 1;
+        let max_row_index = row_number - 1;
+
         let mut grid = Grid2D {
             column_number,
             row_number,
@@ -42,10 +45,10 @@ impl Grid2D {
             grid_size,
             cells_spacing: 0.0,
             shape_rect: Rect::from_center_size(Vec2::ZERO, grid_size),
-            max_column_index: column_number - 1,
-            max_row_index: row_number - 1,
+            max_column_index,
+            max_row_index,
             indexes: Default::default(),
-            indexes_rect: URect::from_corners(UVec2::ZERO, UVec2::new(column_number, row_number)),
+            indexes_rect: URect::from_corners(UVec2::ZERO, UVec2::new(max_column_index, max_row_index)),
         };
         grid.indexes = grid.get_indexes();
         return grid;
@@ -68,11 +71,7 @@ impl Grid2D {
     }
 
     pub fn form_segment_for(&self, area: URect) -> GridSegment {
-        GridSegment {
-            parent_grid: self.indexes_rect,
-            segment_grid: area,
-            bounds: normalize_rect(area),
-        }
+        GridSegment::new(self.indexes_rect, area)
     }
 
     pub fn form_segment_from(&self, origin: CellIndex2d, in_direction: IVec2, num_cells: u32) -> GridSegment {
@@ -81,11 +80,7 @@ impl Grid2D {
             max: UVec2::from(origin + in_direction * (num_cells as i32 - 1)),
         };
         let parent_grid = self.indexes_rect;
-        GridSegment {
-            parent_grid,
-            segment_grid,
-            bounds: normalize_rect(segment_grid),
-        }
+        GridSegment::new(parent_grid, segment_grid)
     }
 
     // Calculate an index that is in given direction by given cells number distance

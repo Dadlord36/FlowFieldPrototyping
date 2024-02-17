@@ -5,24 +5,32 @@ use bevy::{
 
 use crate::{
     components::{
-        grid_components::definitions::{CellIndex2d, Grid2D},
-        movement_components,
-        movement_components::Maneuver,
+        grid_components::{
+            definitions::{
+                CellIndex2d,
+                Grid2D,
+                GridSegment,
+            },
+            grid_related_iterators::CoordinateIterator,
+        },
+        movement_components::{
+            self,
+            Maneuver,
+        },
     },
     function_libs::grid_calculations,
     tests::common,
 };
-use crate::components::grid_components::grid_related_iterators::CoordinateIterator;
+
+use test_case::test_case;
 
 #[test]
 pub fn test_grid_iteration() {
     let grid_parameters = common::construct_default_grid();
 
-
     println!("Grid coordinates iteration test.");
     let mut output = String::new();
     let mut previous_row = grid_parameters.max_row_index;
-
 
     for row in (0..grid_parameters.row_number).rev() {
         if row != previous_row {
@@ -84,12 +92,68 @@ fn test_grid_line_iteration() {
         // Run the URectIterator with 'num_steps' steps
 
         let iterator = CoordinateIterator::iter_area_in_line_from(starting_point, direction, rect);
-        println!("Iterating in direction from: {direction} in rect area: {:?}", rect);
+        println!("Iterating in direction: {direction} from: {starting_point} in rect area: {:?}", rect);
         for cell_index in iterator {
             println!("cell_index: {cell_index}");
         }
     }
 }
+
+/*#[test]
+fn test_if_grid_transforming_works() {
+    let grid: Grid2D = common::construct_default_grid();
+    let segment: GridSegment = grid.form_segment_for(URect::from_corners(UVec2::new(5, 5),
+                                                                         grid.indexes_rect.max));
+
+}*/
+
+#[test_case(CellIndex2d { x: 8, y: 8 }, CellIndex2d { x: 2, y: 2 }; "corner case")]
+#[test_case(CellIndex2d { x: 7, y: 7 }, CellIndex2d { x: 1, y: 1 }; "middle case")]
+#[test_case(CellIndex2d { x: 6, y: 6 }, CellIndex2d { x: 0, y: 0 }; "lower limit case")]
+fn test_global_to_local_index(global_index: CellIndex2d, expected_local_index: CellIndex2d) {
+    let grid: Grid2D = common::construct_default_grid();
+    let child = URect::from_corners(UVec2::new(6, 6), UVec2::new(9, 9));
+    let segment = GridSegment::new(grid.indexes_rect, child);
+
+    println!("Global index: {:?}", global_index);
+    println!("Child grid min corner: {:?}", child.min);
+
+    // Explanation
+    println!("\nConverting from global to local index:");
+    println!("The global index of (8, 8) corresponds to a location within the child grid.");
+    println!("The 'offset' of the GridSegment represents the coordinate of the child grid's top left corner \
+     in the parent grid's coordinate system. In this case, it is {:?}", segment.get_offset());
+    println!("Therefore, to convert the global index to a local index, we subtract the segment's 'offset' from the global index.");
+
+    let local_index = segment.global_to_local_index(global_index);
+    println!("Local index: {local_index} ");
+    println!();
+    assert_eq!(local_index, expected_local_index);
+}
+
+#[test_case(CellIndex2d { x: 2, y: 2 }, CellIndex2d { x: 8, y: 8 }; "corner case")]
+#[test_case(CellIndex2d { x: 1, y: 1 }, CellIndex2d { x: 7, y: 7 }; "middle case")]
+#[test_case(CellIndex2d { x: 0, y: 0 }, CellIndex2d { x: 6, y: 6 }; "lower limit case")]
+fn test_local_to_global_index(local_index: CellIndex2d, expected_global_index: CellIndex2d) {
+    let grid: Grid2D = common::construct_default_grid();
+    let child = URect::from_corners(UVec2::new(6, 6), UVec2::new(9, 9));
+    let segment = GridSegment::new(grid.indexes_rect, child);
+
+    println!("Local index: {:?}", local_index);
+    println!("Child grid min corner: {:?}", child.min);
+
+    // Explanation
+    println!("\nConverting from local to global index:");
+    println!("The local index of (2, 2) corresponds to a location within the child grid.");
+    println!("The 'offset' of the GridSegment represents the coordinate of the child grid's top left corner /\
+         in the parent grid's coordinate system. In this case, it is {:?}", segment.get_offset());
+    println!("Therefore, to convert the local index to a global index, we add the segment's 'offset' to the local index.");
+
+    let global_index = segment.local_to_global_index(local_index);
+    println!("Global index: {:?}", global_index);
+    assert_eq!(global_index, expected_global_index);
+}
+
 
 // Helper function to compute the expected outcome
 fn compute_expected_outcome(start_point: CellIndex2d, direction: Vec2, num_steps: u32) -> Vec<CellIndex2d> {
@@ -104,8 +168,8 @@ fn test_grid_indexing() {
     let cell_index_1d = grid_calculations::calculate_1d_from_2d_index(&grid_parameters, cell_index_2d);
     let cell_index_2d_restored = grid_calculations::calculate_2d_from_1d_index(&grid_parameters, cell_index_1d);
 
-    println!("cell_index_2d: {}, cell_index_2d_restored: {}", cell_index_2d, cell_index_2d_restored);
     assert_eq!(cell_index_2d, cell_index_2d_restored);
+    println!("cell_index_2d: {}, cell_index_2d_restored: {}", cell_index_2d, cell_index_2d_restored);
 }
 
 #[test]
@@ -119,8 +183,8 @@ fn test_surface_coord_to_occupied_cell_index_conversion() {
         assert!(grid_parameters.is_cell_index_in_grid_bounds(cell_index_2d), "cell_index_2d:{cell_index_2d} is not in grid bounds");
         assert!(grid_parameters.is_cell_index_in_grid_bounds(restored_index), "restored_index:{restored_index} is not in grid bounds");
 
-        assert_eq!(cell_index_2d, restored_index, "original_index: {cell_index_2d}, coordinate: {coordinate}, restored_index: {restored_index}");
         println!("original_index: {cell_index_2d} : restored_index: {restored_index}");
+        assert_eq!(cell_index_2d, restored_index, "original_index: {cell_index_2d}, coordinate: {coordinate}, restored_index: {restored_index}");
     }
 }
 
@@ -138,9 +202,8 @@ fn test_coordinate_to_position_on_grid_conversion()
         let restored_position = coordinate.project_surface_coordinate_on_grid(&grid_parameters).translation.truncate();
 
         // assert!(grid_parameters.is_position_in_grid_bounds(restored_position), "restored_position:{restored_position} is not in grid bounds");
-        assert_eq!(grid_cell_position, restored_position, "cell_index: {cell_index_2d} :: original_grid_cell_position: {grid_cell_position} :: restored_position: {restored_position}");
-
         println!("cell_index: {cell_index_2d} :: original_grid_cell_position: {grid_cell_position} :: restored_position: {restored_position} - OK!");
+        assert_eq!(grid_cell_position, restored_position, "cell_index: {cell_index_2d} :: original_grid_cell_position: {grid_cell_position} :: restored_position: {restored_position}");
     }
 }
 

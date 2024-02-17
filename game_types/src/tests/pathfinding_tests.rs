@@ -1,43 +1,71 @@
-use bevy::log::warn;
-use bevy::math::{URect, UVec2};
+use bracket_pathfinding::prelude::NavigationPath;
 
 use crate::{
     components::{
+        grid_components::{
+            definitions::{
+                CellIndex2d,
+                Grid2D,
+                GridRelatedData,
+                Occupation,
+            },
+            definitions::GridCellData,
+        },
+        movement_components::Direction,
         pathfinding_components::{Pathfinder, PathfindingMap},
     },
     tests::common,
 };
-use crate::components::grid_components::definitions::{CellIndex2d, Grid2D, GridRelatedData};
+use colored::*;
 
 #[test]
 fn test_generate_map() {
-    /*let grid: Grid2D = common::construct_default_grid();
-    let grid_related_data = GridRelatedData::new(&grid);
+    let grid: Grid2D = common::construct_default_grid();
+    let mut grid_related_data = GridRelatedData::new(&grid);
+    grid_related_data.fill_with_random_obstacle_pattern(&grid);
 
-    let map: PathfindingMap = grid_related_data.create_pathfinding_map(URect::from_center_size(UVec2::new(5, 5),
-                                                                                               UVec2::new(5, 5)));
+    let map: PathfindingMap =
+        grid_related_data.create_pathfinding_map_on(&grid, grid.indexes_rect);
+    let mut start_point: CellIndex2d = grid.indexes_rect.max.into();
+    start_point.y -= start_point.x / 2;
+    let pathfinder = map.find_destination_in_direction(start_point, Direction::West);
+    //assert that pathfinder is some
+    assert!(pathfinder.is_some(), "No pathfinder found");
+    let pathfinder = pathfinder.unwrap();
 
-    for (index, _element) in map.grid_segment_data.indexed_iter() {
-        println!("{:?}", index);
-    }
-    let pathfinder = Pathfinder {
-        start: CellIndex2d::new(0, 0),
-        end: CellIndex2d::new(3, 3),
-    };
 
-    println!("Running A* Start: ({:?}), End: ({:?})", pathfinder.start, pathfinder.end);
+    let result = map.calculate_path_coordinates_global(pathfinder);
+    //assert result is some
+    assert!(result.is_some(), "No path found");
+    //unwrap result into the same variable
+    let result = result.unwrap();
+    //extract vector into a separate variable
+    let path_coordinates = result.0;
 
-    let path = map.calculate_path(pathfinder);
+    assert!(path_coordinates.len() > 0, "No steps were made");
 
-    assert!(path.steps.len() > 0, "No steps were made");
-    match path.steps.len() {
-        0 => warn!("No path found."),
-        _ => {
-            warn!("Path found, steps:");
-            for idx in path.steps.iter() {
-                println!("{idx}");
-            }
-        }
-    }
-    assert!(path.success);*/
+    pathfinder.visualize_path_on_grid(&grid, &grid_related_data, &path_coordinates);
 }
+
+//Visualize grid with obstacles and a path on it
+/*fn visualize(grid: &Grid2D, grid_related_data: &GridRelatedData,
+             pathfinder: &Pathfinder, path: &NavigationPath) {
+    println!("Visualizing grid...");
+
+    let mut output = String::new();
+    for row in (0..grid.row_number).rev() {
+        for col in 0..grid.column_number {
+            let cell_index2d = CellIndex2d::new(col, row);
+            let cell_index1d = grid.calc_cell_index_1d_at(cell_index2d) as usize;
+
+            let cell_related_data = grid_related_data.get_data_at(&cell_index2d);
+            let is_in_path = path.steps.contains(&cell_index1d);
+            let cell_repr = determine_cell_type(pathfinder, cell_index2d, cell_related_data,
+                                                is_in_path);
+            output.push_str(&format!("|{}|\t", cell_repr));
+        }
+        output.push('\n');
+    }
+    print!("{}", output);
+}*/
+
