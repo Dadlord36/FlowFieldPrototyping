@@ -1,18 +1,24 @@
 use bevy::{
-    math::{Vec2},
-    prelude::{Color, Commands, Res, Transform},
+    prelude::{
+        Color,
+        Commands,
+        Res,
+        Transform,
+        ResMut,
+        Vec2,
+    },
     sprite::{Sprite, SpriteBundle},
 };
-use bevy::prelude::ResMut;
 
-use game_types::components::grid_components::definitions::{CellIndex, Grid2D, GridCellTag, GridRelatedData, Occupation};
+use game_types::components::grid_components::definitions::{CellIndex, Grid2D, GridCellTag,
+                                                           GridRelatedData, Occupation};
 
 pub fn spawned_colorized_cells_system(mut commands: Commands, grid_parameter: Res<Grid2D>)
 {
     let columns_num = grid_parameter.column_number;
     let rows_num = grid_parameter.row_number;
 
-    let cell_size: Vec2 = grid_parameter.cell_size;
+    let cell_size = grid_parameter.cell_size;
     let cell_spacing = grid_parameter.cells_spacing;
 
     // calculate the total size of the grid

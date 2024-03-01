@@ -66,7 +66,8 @@ pub struct CoordinateIterator {
 
 impl CoordinateIterator {
     pub fn new(start_i: u32, end_i: u32, start_j: u32, end_j: u32) -> Self {
-        let data: Vec<CellIndex2d> = (start_j..end_j).flat_map(move |j| (start_i..end_i).map(move |i| CellIndex2d { x: i, y: j })).collect();
+        let data: Vec<CellIndex2d> = (start_j..=end_j).flat_map(move |j| (start_i..=end_i)
+            .map(move |i| CellIndex2d { x: i, y: j })).collect();
         let inner = data.into_iter();
         Self { inner }
     }

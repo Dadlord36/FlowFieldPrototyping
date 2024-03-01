@@ -1,9 +1,21 @@
 use bevy::{
     input::mouse::MouseMotion,
-    prelude::{Camera2d, EventReader, GlobalTransform, Query, Res, ResMut, Transform, Window, With},
+    prelude::{
+        Camera2d,
+        EventReader,
+        GlobalTransform,
+        Query,
+        Res,
+        ResMut,
+        Transform,
+        Window,
+        With,
+        ButtonInput,
+        KeyCode,
+        Vec3,
+    },
     window::PrimaryWindow,
 };
-use bevy::prelude::{Input, KeyCode, Vec3};
 
 use game_types::{
     components::{
@@ -35,24 +47,24 @@ pub fn capture_cursor_position(mut mouse_motion_events: EventReader<MouseMotion>
     }
 }
 
-pub fn move_camera_system(input: Res<Input<KeyCode>>, mut query: Query<&mut Transform, With<Camera2d>>) {
+pub fn move_camera_system(input: Res<ButtonInput<KeyCode>>, mut query: Query<&mut Transform, With<Camera2d>>) {
     for mut transform in query.iter_mut() {
         let mut direction = Vec3::ZERO;
         let speed = 1.0;
 
-        if input.pressed(KeyCode::Left) {
+        if input.pressed(KeyCode::ArrowLeft) {
             direction -= Vec3::new(speed, 0.0, 0.0);
         }
 
-        if input.pressed(KeyCode::Right) {
+        if input.pressed(KeyCode::ArrowRight) {
             direction += Vec3::new(speed, 0.0, 0.0);
         }
 
-        if input.pressed(KeyCode::Up) {
+        if input.pressed(KeyCode::ArrowUp) {
             direction += Vec3::new(0.0, speed, 0.0);
         }
 
-        if input.pressed(KeyCode::Down) {
+        if input.pressed(KeyCode::ArrowDown) {
             direction -= Vec3::new(0.0, speed, 0.0);
         }
 

@@ -112,6 +112,9 @@ impl Into<IVec2> for Direction {
 pub struct MoveTag;
 
 #[derive(Component, Clone, Default)]
+pub struct ObstacleTag;
+
+#[derive(Component, Clone, Default)]
 pub struct PerformManeuver;
 
 impl Direction {

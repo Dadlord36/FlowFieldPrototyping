@@ -75,12 +75,6 @@ pub fn slice_2d_array_mut<T>(data: &mut Array2<T>, inclusive_rect: URect) -> Arr
     slice
 }
 
-pub fn euclidean_distance(a: Vec2, b: Vec2) -> f32 {
-    let dx = a.x - b.x;
-    let dy = a.y - b.y;
-    ((dx * dx) + (dy * dy)).sqrt()
-}
-
 #[inline]
 pub fn global_to_local(global_index: CellIndex2d, segment: URect) -> CellIndex2d {
     let local_x = global_index.x.sub(segment.min.x);

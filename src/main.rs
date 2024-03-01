@@ -8,14 +8,13 @@ use bevy::{
     prelude::*,
 };
 
-use bevy_prototype_lyon::prelude::ShapePlugin;
 
 use game_types::{
     components::{
         flow_field_components::FlowField,
         grid_components::definitions::{Grid2D, GridRelatedData},
-        world_manipulation_components::{CursorWorldPosition, HoverCell},
         movement_components,
+        world_manipulation_components::{CursorWorldPosition, HoverCell},
     },
     systems::{
         flow_driven_movement::*,
@@ -55,16 +54,12 @@ fn main() {
                 title: "Interactive Crowd".to_owned(), // ToDo
                 // Bind to canvas included in `index.html`
                 canvas: Some("#bevy".to_owned()),
-                // The canvas size is constrained in index.html and build/web/styles.css
-                fit_canvas_to_parent: true,
                 // Tells wasm not to override default event handling, like F5 and Ctrl+R
                 prevent_default_event_handling: false,
                 ..default()
             }),
             ..default()
         }))
-        // .add_plugins(bevy_game::GamePlugin)
-        .add_plugins(ShapePlugin)
         .add_systems(Startup, (setup, spawned_colorized_cells_system, visualize_flow_system,
                                reset_cells_colorization, spawn_dummy_path_driven_actor).chain())
         .add_systems(PreUpdate, (reset_cells_colorization, capture_cursor_position, mouse_hover_system,

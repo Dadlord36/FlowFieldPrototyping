@@ -85,7 +85,7 @@ pub fn avoidance_maneuver_system(mut _commands: Commands, grid: Res<Grid2D>,
 
         if grid_related_data.has_obstacle_in(straight_path_area) {
             let area = grid.calculate_square_area_wrapped_from(cell_index.index, PATHFINDING_RECT);
-            grid_related_data.set_color_for_area(area, Color::GRAY);
+            // grid_related_data.set_color_for_area(area, Color::GRAY);
 
             let pathfinding_map: PathfindingMap = grid_related_data.create_pathfinding_map_on(&grid, area);
             let path_description_local: Option<Pathfinder> =
@@ -97,7 +97,7 @@ pub fn avoidance_maneuver_system(mut _commands: Commands, grid: Res<Grid2D>,
             }
             let path_description_local = path_description_local.unwrap();
             if path_description_local == _maneuver.last_destination {
-                return;
+                continue;
             }
             _maneuver.last_destination = path_description_local.clone();
             let path_description_global = pathfinding_map.convert_to_global(path_description_local);
@@ -138,8 +138,8 @@ pub fn path_movement_system(mut _commands: Commands,
     }
 }
 
-pub fn grid_relation_system(grid_parameters: Res<Grid2D>, mut query: Query<(&mut CellIndex,
-                                                                            &SurfaceCoordinate), With<MoveTag>>)
+pub fn grid_relation_system(grid_parameters: Res<Grid2D>,
+                            mut query: Query<(&mut CellIndex, &SurfaceCoordinate), With<MoveTag>>)
 {
     for (mut cell_index, surface_calculations) in query.iter_mut() {
         cell_index.index = surface_calculations.calculate_cell_index_on_flat_surface(&grid_parameters);

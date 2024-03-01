@@ -3,7 +3,11 @@ use bevy::prelude::{Bundle, SpriteBundle};
 use game_types::{
     components::{
         grid_components::definitions::CellIndex,
-        movement_components::{MoveTag, SurfaceCoordinate},
+        movement_components::{
+            MoveTag,
+            SurfaceCoordinate,
+            ObstacleTag,
+        },
         pathfinding_components::MovementSpeed,
     }
 };
@@ -14,5 +18,6 @@ pub struct SurfaceWalkerBundle {
     pub occupied_cell_index: CellIndex,
     pub sprite_bundle: SpriteBundle,
     pub move_tag: MoveTag,
+    pub obstacle_tag: ObstacleTag,
     pub movement_speed: MovementSpeed,
 }

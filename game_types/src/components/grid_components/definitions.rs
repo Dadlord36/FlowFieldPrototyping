@@ -1,8 +1,8 @@
 use bevy::{
     math::{
+        IVec2,
         Rect,
         Vec2,
-        IVec2,
     },
     prelude::{
         Color,
@@ -11,6 +11,7 @@ use bevy::{
         URect,
     },
 };
+use bevy::prelude::UVec2;
 use derive_more::{Add, AddAssign, AsRef, Constructor, Display, From, Into, Rem, Sub};
 use ndarray::Array2;
 
@@ -20,6 +21,7 @@ pub type CellIndex1d = u32;
 pub enum Occupation {
     Free,
     Occupied,
+    Temp,
 }
 
 impl Default for Occupation {
@@ -40,8 +42,8 @@ pub struct CellIndex2d {
 normalized_grid: {:?}", parent_grid, bounds)]
 pub struct GridSegment {
     pub(super) parent_grid: URect,
-    pub(super) offset: IVec2,
     // Offset from parent grid to segment grid
+    pub(super) offset: IVec2,
     pub(super) bounds: URect,
 }
 
@@ -70,6 +72,12 @@ pub struct Grid2D {
 pub struct GridCellData {
     pub color: Color,
     pub occupation_state: Occupation,
+    pub detraction_factor: f32,
+}
+
+#[derive(Resource, Clone)]
+pub struct ObstaclesParameters {
+    pub influence_area: UVec2,
 }
 
 #[derive(Resource)]

@@ -6,11 +6,13 @@ use crate::{
     components::{
         grid_components::{
             definitions::{
+                Grid2D,
                 CellIndex1d,
                 CellIndex2d,
                 Occupation,
+                GridCellData,
+                GridRelatedData,
             },
-            definitions::Grid2D,
             grid_related_iterators::CoordinateIterator,
         },
         movement_components::{
@@ -24,7 +26,6 @@ use crate::{
         ,
     },
 };
-use crate::components::grid_components::definitions::{GridCellData, GridRelatedData};
 
 impl<'a> PathfindingMap<'a> {
     #[deprecated]
@@ -49,7 +50,8 @@ impl<'a> PathfindingMap<'a> {
     #[inline]
     fn calculate_path_local(&self, pathfinder: Pathfinder) -> NavigationPath {
         //log what is going to happen, printing out the area as well
-        println!("Calculating path from {} to {} in area {:?}", pathfinder.start, pathfinder.end, self.area);
+        println!("Calculating path from {} to {} in area {:?}", pathfinder.start, pathfinder.end,
+                 self.area);
         let width = self.area.width();
         a_star_search(grid_calculations::calculate_1d_index(pathfinder.start, width),
                       grid_calculations::calculate_1d_index(pathfinder.end, width), self)
@@ -57,12 +59,10 @@ impl<'a> PathfindingMap<'a> {
 
     #[inline]
     fn find_path_points(&self, pathfinder: Pathfinder) -> Option<(Vec<CellIndex2d>, u32)> {
-        let result: Option<(Vec<CellIndex2d>, u32)> =
-            astar(&pathfinder.start,
-                  |p| self.calculate_successors(p),
-                  |p| p.distance(&pathfinder.end) / 3,
-                  |p| *p == pathfinder.end);
-        result
+        astar(&pathfinder.start,
+              |p| self.calculate_successors(p),
+              |p| p.distance(&pathfinder.end),
+              |p| *p == pathfinder.end)
     }
 
     fn convert_normalized_1d_to_global_points(&self, normalized_points: &Vec<usize>) -> Vec<CellIndex2d> {
@@ -77,7 +77,7 @@ impl<'a> PathfindingMap<'a> {
 
         global_points
     }
-
+    //
     fn convert_normalized_2d_to_global_points(&self, normalized_points: &Vec<CellIndex2d>) -> Vec<CellIndex2d> {
         let mut global_points = Vec::with_capacity(normalized_points.len());
 
@@ -245,9 +245,10 @@ impl<'a> BaseMap for PathfindingMap<'a> {
 
             let cell_index_1d = grid_calculations::calculate_1d_index(outer_cell, width);
             if self[outer_cell].occupation_state == Occupation::Free {
-                exits.push((cell_index_1d as usize, 1.0));
+                exits.push((cell_index_1d as usize, self[outer_cell].detraction_factor));
             }
         }
         exits
     }
 }
+

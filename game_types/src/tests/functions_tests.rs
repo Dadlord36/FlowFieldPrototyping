@@ -264,3 +264,4 @@ fn test_calculate_indexes_in_circle_from_index() {
                                                                                        cell_index, 5u32);
     }
 }
+

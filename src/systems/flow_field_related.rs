@@ -5,25 +5,18 @@ use bevy::{
         Vec2,
     },
     prelude::{
-        Color,
         Commands,
         Res,
-        SpatialBundle,
-        Transform,
         Sprite,
         SpriteBundle,
+        Transform,
     },
-};
-use bevy_prototype_lyon::{
-    draw::{Fill, Stroke},
-    entity::ShapeBundle,
-    path::PathBuilder,
-    prelude::Path,
+    prelude::Color,
 };
 
 use game_types::{
     components::{
-        flow_field_components::{Arrow, FlowField},
+        flow_field_components::FlowField,
         grid_components::definitions::{CellIndex, CellIndex2d, Grid2D},
         movement_components::{Maneuver, SurfaceCoordinate},
         pathfinding_components::MovementSpeed,
@@ -42,15 +35,17 @@ pub fn visualize_flow_system(mut _commands: Commands, grid_parameter: Res<Grid2D
         new_transform.rotation = Quat::from_rotation_z(flow_field.get_rotation_angle_at(&coordinate));
         // Spawn an entity with the arrow shape, positioned at the cell's location
         // and rotated to match the flow direction
-        _commands.spawn((ShapeBundle {
-            path: build_arrow_shape(25f32, 10f32),
-            spatial: SpatialBundle {
-                transform: new_transform,
-                ..Default::default()
-            },
-            ..Default::default()
-        }, Stroke::new(Color::BLACK, 1.0), Fill::color(Color::RED),
-        )).insert(Arrow).insert(CellIndex::new(coordinate));
+
+
+        /*        _commands.spawn((ShapeBundle {
+                    path: build_arrow_shape(25f32, 10f32),
+                    spatial: SpatialBundle {
+                        transform: new_transform,
+                        ..Default::default()
+                    },
+                    ..Default::default()
+                }, Stroke::new(Color::BLACK, 1.0), Fill::color(Color::RED),
+                )).insert(Arrow).insert(CellIndex::new(coordinate));*/
     }
 }
 
@@ -120,7 +115,7 @@ pub(crate) fn spawn_movable_actor(commands: &mut Commands, cell_index: CellIndex
 }
 
 
-fn build_arrow_shape(length: f32, width: f32) -> Path {
+/*fn build_arrow_shape(length: f32, width: f32) -> Path {
     // Create a new PathBuilder for the arrow shape
     let mut path_builder = PathBuilder::new();
     path_builder.move_to(Vec2::new(0., 0.)); // base of the arrow
@@ -130,4 +125,4 @@ fn build_arrow_shape(length: f32, width: f32) -> Path {
     path_builder.line_to(Vec2::new(0., 0.)); // closing the path back at base
     path_builder.close();
     path_builder.build()
-}
+}*/

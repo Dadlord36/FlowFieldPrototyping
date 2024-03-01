@@ -18,6 +18,8 @@ use bevy::{
     },
     render::color::Color,
 };
+use bevy::log::info;
+use colored::{ColoredString, Colorize};
 use derive_more::AddAssign;
 use ndarray::{Array2, ArrayView2, ArrayViewMut2, IndexLonger, Ix2, NdIndex};
 use num_traits::AsPrimitive;
@@ -164,19 +166,19 @@ impl CellIndex2d {
         self.x.abs_diff(other.x) + self.y.abs_diff(other.y)
     }
 
+    pub fn euclidean_distance(&self, other: &CellIndex2d) -> f32 {
+        let x_distance = other.x as f64 - self.x as f64;
+        let y_distance = other.y as f64 - self.y as f64;
+
+        (x_distance.powi(2) + y_distance.powi(2)).sqrt() as f32
+    }
+
     pub fn normalize(&self) -> Self {
         let length = ((self.x.pow(2) + self.y.pow(2)) as f32).sqrt() as u32;
         Self {
             x: self.x / length,
             y: self.y / length,
         }
-    }
-
-    pub fn euclidean_distance(&self, other: &CellIndex2d) -> f32 {
-        let x_distance = other.x as f64 - self.x as f64;
-        let y_distance = other.y as f64 - self.y as f64;
-
-        (x_distance.powi(2) + y_distance.powi(2)).sqrt() as f32
     }
 }
 
@@ -265,8 +267,44 @@ impl GridRelatedData {
             GridCellData {
                 color: Color::WHITE, // Adjust color corresponding to Occupation
                 occupation_state: occupation,
+                detraction_factor: 0.0,
             }
         });
+    }
+
+    pub fn visualize_on_grid(&self, grid: &Grid2D) {
+        println!("{}", "Visualizing grid...".yellow());
+
+        let mut output: Vec<ColoredString> = Vec::new();
+        for row in (0..grid.row_number).rev() {
+            for col in 0..grid.column_number {
+                let cell_index2d = CellIndex2d::new(col, row);
+                let cell_related_data = self.get_data_at(&cell_index2d);
+                let cell_repr: ColoredString = self.determine_cell_type(cell_related_data);
+                output.push(format!("|{}| ", cell_repr).normal());
+            }
+            output.push("\n".normal());
+        }
+
+        for colored_string in output {
+            print!("{}", colored_string);
+        }
+    }
+
+    fn determine_cell_type(&self, cell_related_data: &GridCellData) -> ColoredString {
+        let cell_repr: ColoredString =
+            if cell_related_data.occupation_state == Occupation::Occupied {
+                "O".black()  // Obstacle
+            } /*else if cell_related_data.detraction_factor > 0.0 {
+                let number = format!("{:.2}", cell_related_data.detraction_factor);
+                number.black()
+            }*/
+            else if cell_related_data.occupation_state == Occupation::Temp {
+                "T".black()
+            } else {
+                "E".bright_black()  // Empty cell
+            };
+        cell_repr
     }
 
     pub fn get_data_at_mut(&mut self, cell_index: &CellIndex2d) -> &mut GridCellData { &mut self.data[cell_index] }

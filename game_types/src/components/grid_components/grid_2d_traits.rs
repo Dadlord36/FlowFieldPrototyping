@@ -62,6 +62,12 @@ impl Grid2D {
             }).collect()
     }
 
+    pub fn get_central_cell(&self) -> CellIndex2d {
+        let center_x = self.column_number / 2;
+        let center_y = self.row_number / 2;
+        CellIndex2d::new(center_x, center_y)
+    }
+
     pub fn calculate_surface_coordinates_for_2d(&self, cell_indexes: &Vec<CellIndex2d>) -> Vec<SurfaceCoordinate> {
         cell_indexes
             .iter()

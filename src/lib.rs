@@ -7,16 +7,9 @@ use bevy::{
 };
 
 use crate::actions::ActionsPlugin;
-use crate::audio::InternalAudioPlugin;
-use crate::loading::LoadingPlugin;
 // use crate::menu::MenuPlugin;
-use crate::player::PlayerPlugin;
 
 mod actions;
-mod audio;
-mod loading;
-mod menu;
-mod player;
 
 // use bevy::core::update_frame_count;
 
@@ -38,12 +31,9 @@ pub struct GamePlugin;
 
 impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
-        app.add_state::<GameState>().add_plugins((
-            LoadingPlugin,
+        app.insert_state(GameState::default()).add_plugins((
             // MenuPlugin,
             ActionsPlugin,
-            InternalAudioPlugin,
-            PlayerPlugin,
         ))
             .add_systems(Startup, setup);
 
