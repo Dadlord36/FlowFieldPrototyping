@@ -1,10 +1,21 @@
 use bevy::math::{IVec2, URect};
+
 use crate::components::grid_components::definitions::CellIndex2d;
 
 pub struct AreaLineIterator {
     bounds: URect,
     current: CellIndex2d,
     direction: IVec2,
+}
+
+impl AreaLineIterator {
+    pub fn iter_area_in_line_from(start: CellIndex2d, direction: IVec2, area: URect) -> AreaLineIterator {
+        AreaLineIterator {
+            bounds: area,
+            current: start,
+            direction,
+        }
+    }
 }
 
 impl Iterator for AreaLineIterator {
@@ -27,6 +38,16 @@ pub struct AreaFullIterator {
     bounds: URect,
     current: CellIndex2d,
     direction: IVec2,
+}
+
+impl AreaFullIterator {
+    pub fn iter_area_fully_from(start: CellIndex2d, direction: IVec2, area: URect) -> AreaFullIterator {
+        AreaFullIterator {
+            bounds: area,
+            current: start,
+            direction,
+        }
+    }
 }
 
 impl Iterator for AreaFullIterator {
@@ -70,22 +91,6 @@ impl CoordinateIterator {
             .map(move |i| CellIndex2d { x: i, y: j })).collect();
         let inner = data.into_iter();
         Self { inner }
-    }
-
-    pub fn iter_area_in_line_from(start: CellIndex2d, direction: IVec2, area: URect) -> AreaLineIterator {
-        AreaLineIterator {
-            bounds: area,
-            current: start,
-            direction,
-        }
-    }
-
-    pub fn iter_area_fully_from(start: CellIndex2d, direction: IVec2, area: URect) -> AreaFullIterator {
-        AreaFullIterator {
-            bounds: area,
-            current: start,
-            direction,
-        }
     }
 }
 

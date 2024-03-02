@@ -173,6 +173,20 @@ impl CellIndex2d {
         (x_distance.powi(2) + y_distance.powi(2)).sqrt() as f32
     }
 
+    pub fn inverse_chebyshev_distance(&self, other: &CellIndex2d) -> f32 {
+        let x_distance = (other.x as f64 - self.x as f64).abs();
+        let y_distance = (other.y as f64 - self.y as f64).abs();
+
+        let distance = x_distance.max(y_distance) as f32;
+
+        // Check if distance is very small to prevent division by zero errors
+        return if distance.abs() < f32::EPSILON {
+            0.0
+        } else {
+            1.0 / distance
+        };
+    }
+
     pub fn normalize(&self) -> Self {
         let length = ((self.x.pow(2) + self.y.pow(2)) as f32).sqrt() as u32;
         Self {
@@ -294,15 +308,14 @@ impl GridRelatedData {
     fn determine_cell_type(&self, cell_related_data: &GridCellData) -> ColoredString {
         let cell_repr: ColoredString =
             if cell_related_data.occupation_state == Occupation::Occupied {
-                "O".black()  // Obstacle
-            } /*else if cell_related_data.detraction_factor > 0.0 {
-                let number = format!("{:.2}", cell_related_data.detraction_factor);
+                " O ".black()  // Obstacle
+            } else if cell_related_data.detraction_factor > 0.0 {
+                let number = format!("{:.1}", cell_related_data.detraction_factor);
                 number.black()
-            }*/
-            else if cell_related_data.occupation_state == Occupation::Temp {
-                "T".black()
+            } else if cell_related_data.occupation_state == Occupation::Temp {
+                " T ".black()
             } else {
-                "E".bright_black()  // Empty cell
+                " E ".bright_black()  // Empty cell
             };
         cell_repr
     }

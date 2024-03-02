@@ -26,8 +26,8 @@ impl Grid2D {
     }
 
     pub fn iter_coordinates_in_area(&self, area: URect) -> CoordinateIterator {
-        assert!(area.max.x <= self.column_number);
-        assert!(area.max.y <= self.row_number);
+        assert!(area.max.x <= self.column_number - 1, "max.x is out of bounds");
+        assert!(area.max.y <= self.row_number - 1, "max.y is out of bounds");
         CoordinateIterator::new(area.min.x, area.max.x, area.min.y, area.max.y)
     }
 

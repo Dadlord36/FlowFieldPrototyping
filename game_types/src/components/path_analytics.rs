@@ -26,6 +26,7 @@ use crate::{
         ,
     },
 };
+use crate::components::grid_components::grid_related_iterators::AreaLineIterator;
 
 impl<'a> PathfindingMap<'a> {
     #[deprecated]
@@ -115,8 +116,8 @@ impl<'a> PathfindingMap<'a> {
         let mut local_index = from_local_index;
         let mut global_index: Option<CellIndex2d> = None;
 
-        for cell_index in CoordinateIterator::iter_area_in_line_from(local_index, direction.as_vector(),
-                                                                     self.area_normalized)
+        for cell_index in AreaLineIterator::iter_area_in_line_from(local_index, direction.as_vector(),
+                                                                   self.area_normalized)
         {
             if self[cell_index].occupation_state != occupation_state {
                 continue;

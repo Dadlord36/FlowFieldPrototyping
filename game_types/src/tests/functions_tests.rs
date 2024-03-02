@@ -23,6 +23,7 @@ use crate::{
 };
 
 use test_case::test_case;
+use crate::components::grid_components::grid_related_iterators::{AreaFullIterator, AreaLineIterator};
 
 #[test]
 pub fn test_grid_iteration() {
@@ -70,7 +71,7 @@ fn test_grid_area_iteration() {
     for direction in movement_components::DIRECTIONS {
         // Run the URectIterator with 'num_steps' steps
 
-        let iterator = CoordinateIterator::iter_area_fully_from(starting_point, direction, rect);
+        let iterator = AreaFullIterator::iter_area_fully_from(starting_point, direction, rect);
         println!("Iterating fully in direction from: {direction} in rect area: {:?}", rect);
         for cell_index in iterator {
             println!("cell_index: {cell_index}");
@@ -91,7 +92,7 @@ fn test_grid_line_iteration() {
     for direction in movement_components::DIRECTIONS {
         // Run the URectIterator with 'num_steps' steps
 
-        let iterator = CoordinateIterator::iter_area_in_line_from(starting_point, direction, rect);
+        let iterator = AreaLineIterator::iter_area_in_line_from(starting_point, direction, rect);
         println!("Iterating in direction: {direction} from: {starting_point} in rect area: {:?}", rect);
         for cell_index in iterator {
             println!("cell_index: {cell_index}");
