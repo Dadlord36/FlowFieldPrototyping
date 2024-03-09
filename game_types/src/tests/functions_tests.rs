@@ -5,24 +5,19 @@ use bevy::{
 
 use crate::{
     components::{
-        grid_components::{
-            definitions::{
-                CellIndex2d,
-                Grid2D,
-                GridSegment,
-            },
-            grid_related_iterators::CoordinateIterator,
+        grid_components::definitions::{
+            CellIndex2d,
+            Grid2D,
+            GridSegment,
         },
-        movement_components::{
-            self,
-            Maneuver,
-        },
+        movement_components::Maneuver,
     },
     function_libs::grid_calculations,
     tests::common,
 };
 
 use test_case::test_case;
+use crate::components::directions;
 use crate::components::grid_components::grid_related_iterators::{AreaFullIterator, AreaLineIterator};
 
 #[test]
@@ -68,7 +63,7 @@ fn test_grid_area_iteration() {
 
     let rect = grid.calculate_area_from(CellIndex2d::new(0, 0), IVec2::new(1, 1), 15);
 
-    for direction in movement_components::DIRECTIONS {
+    for direction in directions::DIRECTIONS {
         // Run the URectIterator with 'num_steps' steps
 
         let iterator = AreaFullIterator::iter_area_fully_from(starting_point, direction, rect);
@@ -89,7 +84,7 @@ fn test_grid_line_iteration() {
 
     let rect = grid.calculate_area_from(CellIndex2d::new(0, 0), IVec2::new(1, 1), 10);
 
-    for direction in movement_components::DIRECTIONS {
+    for direction in directions::DIRECTIONS {
         // Run the URectIterator with 'num_steps' steps
 
         let iterator = AreaLineIterator::iter_area_in_line_from(starting_point, direction, rect);
@@ -266,3 +261,36 @@ fn test_calculate_indexes_in_circle_from_index() {
     }
 }
 
+#[test]
+fn test_rect_intersection() {
+    //Non intersection case
+    {
+        let rect = URect {
+            min: UVec2 { x: 0, y: 0 },
+            max: UVec2 { x: 12, y: 12 },
+        };
+
+        let rect2 = URect {
+            min: UVec2 { x: 12, y: 12 },
+            max: UVec2 { x: 22, y: 22 },
+        };
+
+        let result = grid_calculations::are_intersecting_exclusive(rect, rect2);
+        assert!(!result, "result was {result}")
+    }
+    //Intersection case
+    {
+        let rect = URect {
+            min: UVec2 { x: 0, y: 0 },
+            max: UVec2 { x: 12, y: 12 },
+        };
+
+        let rect2 = URect {
+            min: UVec2 { x: 11, y: 11 },
+            max: UVec2 { x: 32, y: 32 },
+        };
+
+        let result = grid_calculations::are_intersecting_exclusive(rect, rect2);
+        assert!(result, "result was {result}")
+    }
+}

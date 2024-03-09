@@ -1,15 +1,24 @@
 use std::ops::Sub;
+
 use bevy::{
     math::{
+        FloatExt,
         URect,
+        UVec2,
         Vec2,
-    }
+    },
+    utils::HashMap,
 };
-use bevy::math::UVec2;
 use ndarray::{Array2, ArrayView2, ArrayViewMut2, s};
 use num_traits::AsPrimitive;
 
-use crate::components::grid_components::definitions::{CellIndex1d, CellIndex2d, Grid2D};
+use crate::components::{
+    directions::{
+        Direction,
+        Direction::SouthWest,
+    },
+    grid_components::definitions::{CellIndex1d, CellIndex2d, Grid2D},
+};
 
 #[inline]
 pub fn calculate_2d_index(index: CellIndex1d, column_number: u32) -> CellIndex2d
@@ -99,4 +108,111 @@ pub fn normalize_rect(rect: URect) -> URect {
         min: UVec2::ZERO,
         max: UVec2 { x: rect.width(), y: rect.height() },
     }
+}
+
+/// Splits a grid into eight compass directions: north, northeast, east, southeast, south, southwest, west, and northwest.
+///
+/// # Arguments
+///
+/// * `grid` - A reference to a `URect` representing the grid to split.
+///
+/// # Returns
+///
+/// An array of `URect` representing the eight compass directions.
+
+pub fn split_grid_in_compass_directions(grid: &URect) -> HashMap<Direction, URect> {
+    let min = grid.min.as_vec2();
+    let max = grid.max.as_vec2();
+
+    let first_seg_max_x = min.x.lerp(max.x, 1.0 / 3.0) as u32;
+    let second_seg_max_x = min.x.lerp(max.x, 2.0 / 3.0) as u32;
+    let third_seg_max_x = max.x as u32;
+
+    let first_seg_max_y = min.y.lerp(max.y, 1.0 / 3.0) as u32;
+    let second_seg_max_y = min.y.lerp(max.y, 2.0 / 3.0) as u32;
+    let third_seg_max_y = max.y as u32;
+
+    let min = grid.min;
+    let mut directions_map: HashMap<Direction, URect> = HashMap::with_capacity(8);
+
+
+    let n = URect::new(min.x, min.y, third_seg_max_x, first_seg_max_y);
+    directions_map.insert(Direction::North, n);
+    let ne = URect::new(second_seg_max_x, min.y, third_seg_max_x, second_seg_max_y);
+    directions_map.insert(Direction::NorthEast, ne);
+    let e = URect::new(second_seg_max_x, first_seg_max_y, third_seg_max_x, second_seg_max_y);
+    directions_map.insert(Direction::East, e);
+    let se = URect::new(second_seg_max_x, second_seg_max_y, third_seg_max_x, third_seg_max_y);
+    directions_map.insert(Direction::SouthEast, se);
+    let s = URect::new(first_seg_max_x, second_seg_max_y, second_seg_max_x, third_seg_max_y);
+    directions_map.insert(Direction::South, s);
+    let sw = URect::new(min.x, second_seg_max_y, first_seg_max_x, third_seg_max_y);
+    directions_map.insert(SouthWest, sw);
+    let w = URect::new(min.x, first_seg_max_y, first_seg_max_x, second_seg_max_y);
+    directions_map.insert(Direction::West, w);
+    let nw = URect::new(min.x, min.y, first_seg_max_x, first_seg_max_y);
+    directions_map.insert(Direction::NorthWest, nw);
+
+    directions_map
+}
+
+/// Checks if two rectangles intersect.
+///
+/// # Arguments
+///
+/// * `rect1` - The first rectangle.
+/// * `rect2` - The second rectangle.
+///
+/// # Returns
+///
+/// Returns `true` if the rectangles intersect, `false` otherwise.
+///
+/// # Examples
+///
+/// ```
+/// use bevy::prelude::{URect, UVec2};
+/// use game_types::function_libs::grid_calculations::{self};
+/// //Non intersection case
+/// {
+///    let rect = URect {
+///    min: UVec2 { x: 0, y: 0 },
+///    max: UVec2 { x: 12, y: 12 },
+///    };
+///
+///    let rect2 = URect {
+///    min: UVec2 { x: 13, y: 13 },
+///    max: UVec2 { x: 22, y: 22 },
+///    };
+///
+///    let result = grid_calculations::are_intersecting_inclusive(rect, rect2);
+///    assert!(!result, "result was {result}")
+/// }
+/// //Intersection case
+/// {
+///    let rect = URect {
+///    min: UVec2 { x: 0, y: 0 },
+///    max: UVec2 { x: 12, y: 12 },
+/// };
+///
+///    let rect2 = URect {
+///    min: UVec2 { x: 5, y: 5 },
+///    max: UVec2 { x: 22, y: 22 },
+///    };
+///
+///    let result = grid_calculations::are_intersecting_inclusive(rect, rect2);
+///    assert!(result, "result was {result}")
+///}
+/// println!("Intersection is working fine!")
+/// ```
+#[inline]
+pub fn are_intersecting_inclusive(rect1: URect, rect2: URect) -> bool {
+    rect1.contains(rect2.min) || rect1.contains(rect2.max)
+}
+
+#[inline]
+pub fn are_intersecting_exclusive(rect1: URect, rect2: URect) -> bool {
+    let point = rect2.max;
+    let point1 = rect2.min;
+    (point1.cmpgt(rect1.min) & point1.cmplt(rect1.max)).all() ||
+        (point.cmpgt(rect1.min) & point.cmplt(rect1.max)).all()
 }

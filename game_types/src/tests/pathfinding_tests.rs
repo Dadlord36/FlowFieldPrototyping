@@ -1,19 +1,17 @@
-use std::cmp;
-use bevy::math::{Rect, URect, UVec2};
+use bevy::math::{URect, UVec2};
+use bevy::utils::HashMap;
+
 use crate::{
-    components::{
-        grid_components::definitions::{
-            CellIndex2d,
-            Grid2D,
-            GridRelatedData
-            ,
-        },
-        movement_components::Direction,
-        pathfinding_components::PathfindingMap,
+    components::grid_components::definitions::{
+        Grid2D,
+        GridRelatedData,
+        Occupation,
     },
     tests::common,
 };
-use crate::components::grid_components::definitions::Occupation;
+use crate::components::directions::Direction;
+use crate::function_libs::grid_calculations;
+use crate::tests::common::construct_default_grid;
 
 const PATHFINDING_RECT: UVec2 = UVec2::new(10, 10);
 
@@ -69,19 +67,48 @@ fn test_generate_map() {
 fn test_obstacles_identification() {
     let grid: Grid2D = common::construct_default_grid();
     let mut grid_related_data = GridRelatedData::new(&grid);
-    // grid_related_data.fill_with_random_obstacle_pattern(&grid);
+    grid_related_data.fill_with_random_obstacle_pattern(&grid);
 
-    let central_index = grid.get_central_cell();
+    for coordinate in grid.iter_coordinates() {
+        let central_index = &coordinate;
 
-    let segment_rect = URect::from_center_size(central_index.into(),
-                                               UVec2::new(5, 5));
+        if grid_related_data.get_data_at(central_index).occupation_state != Occupation::Occupied {
+            continue;
+        }
 
-    for cell_in_segment in grid.iter_coordinates_in_area(segment_rect) {
-        grid_related_data[cell_in_segment].detraction_factor =
-            central_index.inverse_chebyshev_distance(&cell_in_segment) as f32;
+        let segment_rect = grid.calculate_area_clamped_from_center(central_index,
+                                                                   UVec2::new(8, 8));
+
+        for cell_in_segment in grid.iter_coordinates_in_area(segment_rect) {
+            let detraction_factor = central_index.inverse_chebyshev_distance(&cell_in_segment);
+            grid_related_data.set_increased_detraction_factor(&cell_in_segment, detraction_factor);
+        }
     }
 
-    grid_related_data[central_index].occupation_state = Occupation::Temp;
+    // grid_related_data[central_index].occupation_state = Occupation::Temp;
 
     grid_related_data.visualize_on_grid(&grid)
+}
+
+#[test]
+fn test_split_grid() {
+    let grid = construct_default_grid();
+    let rect = grid.indexes_rect;
+
+    let segments_map = grid_calculations::split_grid_in_compass_directions(&rect);
+    //Asset that no rects are intersecting other
+    for (direction1, rect1) in segments_map.iter() {
+        for (direction2, rect2) in segments_map.iter() {
+            if direction1 != direction2 && grid_calculations::are_intersecting_exclusive(*rect1, *rect2) {
+                panic!("Rects {:?} and {:?} - are intersecting", rect1, rect2);
+            }
+        }
+    }
+    println!("All segments are non intersecting each other exclusively")
+}
+
+fn printout_segment(result3: &HashMap<Direction, URect>) {
+    for segment in result3.iter() {
+        println!("Segment: Direction {} : [{:?}]", segment.0, segment.1);
+    }
 }

@@ -11,7 +11,7 @@ use bevy::{
         With,
     },
 };
-use bevy::math::URect;
+use bevy::math::{URect, UVec2};
 
 use crate::{
     components::{
@@ -28,6 +28,7 @@ use crate::{
         world_manipulation_components::CursorWorldPosition,
     }
 };
+use crate::components::grid_components::definitions::Occupation;
 
 pub fn rotate_flow_arrows_system(mut shapes_transform_query: Query<(&mut Transform, &CellIndex), With<Arrow>>,
                                  flow_field: Res<FlowField>) {
@@ -48,16 +49,23 @@ pub fn flow_explosion_system(input: Res<ButtonInput<MouseButton>>, cursor_world_
     }
 }
 
-pub fn detraction_factor_calculation_system(mut grid_cell_data: ResMut<GridRelatedData>,
-                                            grid_parameters: Res<Grid2D>,
+pub fn detraction_factor_calculation_system(mut grid_data: ResMut<GridRelatedData>,
+                                            grid: Res<Grid2D>,
                                             obstacles_parameters: Res<ObstaclesParameters>,
-                                            query: Query<&CellIndex, With<ObstacleTag>>) {
+                                            query: Query<&CellIndex>) {
     for obstacle_index in query.iter() {
-        let central_index = obstacle_index.index;
-        let segment_rect = URect::from_center_size(central_index.into(),
-                                                   obstacles_parameters.influence_area);
-        for cell_in_segment in grid_parameters.iter_coordinates_in_area(segment_rect) {
-            grid_cell_data[cell_in_segment].detraction_factor = central_index.euclidean_distance(&cell_in_segment);
+        let cell_index = &obstacle_index.index;
+
+        if grid_data.get_data_at(cell_index).occupation_state != Occupation::Occupied {
+            continue;
+        }
+
+        let segment_rect = grid.calculate_area_clamped_from_center(cell_index,
+                                                                   obstacles_parameters.influence_area);
+
+        for cell_in_segment in grid.iter_coordinates_in_area(segment_rect) {
+            let detraction_factor = cell_index.inverse_chebyshev_distance(&cell_in_segment);
+            grid_data.set_increased_detraction_factor(&cell_in_segment, detraction_factor);
         }
     }
 }

@@ -18,7 +18,6 @@ use bevy::{
     },
     render::color::Color,
 };
-use bevy::log::info;
 use colored::{ColoredString, Colorize};
 use derive_more::AddAssign;
 use ndarray::{Array2, ArrayView2, ArrayViewMut2, IndexLonger, Ix2, NdIndex};
@@ -148,7 +147,7 @@ impl Debug for CellIndex2d {
 
 impl fmt::Display for CellIndex2d {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        write!(f, "({}, {})", self.x, self.y)
+        write!(f, "{:2}, {:2}", self.x, self.y)
     }
 }
 
@@ -240,6 +239,15 @@ impl GridRelatedData {
         self.data[cell_index2d].color = color
     }
 
+    pub(crate) fn set_increased_detraction_factor(&mut self, cell_index2d: &CellIndex2d,
+                                                  detraction_factor_candidate: f32) {
+        let current_value = self.get_data_at(cell_index2d).detraction_factor;
+
+        if current_value < detraction_factor_candidate {
+            self.get_data_at_mut(cell_index2d).detraction_factor = detraction_factor_candidate;
+        }
+    }
+
     pub fn get_segment_view_of(&self, area: URect) -> ArrayView2<GridCellData> {
         slice_2d_array(&self.data, area)
     }
@@ -294,7 +302,7 @@ impl GridRelatedData {
             for col in 0..grid.column_number {
                 let cell_index2d = CellIndex2d::new(col, row);
                 let cell_related_data = self.get_data_at(&cell_index2d);
-                let cell_repr: ColoredString = self.determine_cell_type(cell_related_data);
+                let cell_repr: ColoredString = determine_cell_type(cell_related_data);
                 output.push(format!("|{}| ", cell_repr).normal());
             }
             output.push("\n".normal());
@@ -305,23 +313,34 @@ impl GridRelatedData {
         }
     }
 
-    fn determine_cell_type(&self, cell_related_data: &GridCellData) -> ColoredString {
-        let cell_repr: ColoredString =
-            if cell_related_data.occupation_state == Occupation::Occupied {
-                " O ".black()  // Obstacle
-            } else if cell_related_data.detraction_factor > 0.0 {
-                let number = format!("{:.1}", cell_related_data.detraction_factor);
-                number.black()
-            } else if cell_related_data.occupation_state == Occupation::Temp {
-                " T ".black()
-            } else {
-                " E ".bright_black()  // Empty cell
-            };
-        cell_repr
-    }
 
     pub fn get_data_at_mut(&mut self, cell_index: &CellIndex2d) -> &mut GridCellData { &mut self.data[cell_index] }
     pub fn get_data_at(&self, cell_index: &CellIndex2d) -> &GridCellData { &self.data[cell_index] }
+}
+
+fn determine_cell_type(cell_related_data: &GridCellData) -> ColoredString {
+    let cell_repr: ColoredString =
+        if cell_related_data.occupation_state == Occupation::Occupied {
+            " O ".black()  // Obstacle
+        } else if cell_related_data.detraction_factor > 0.0 {
+            let number = format!("{:.1}", cell_related_data.detraction_factor);
+            let index = (cell_related_data.detraction_factor * 6.0).round() as u8;
+            number.color(int_to_color(index))
+        } else {
+            " E ".bright_black()  // Empty cell
+        };
+    cell_repr
+}
+
+fn int_to_color(value: u8) -> colored::Color {
+    match value {
+        0 => colored::Color::BrightGreen,
+        1 => colored::Color::Green,
+        2 => colored::Color::BrightYellow,
+        4 => colored::Color::Yellow,
+        5 => colored::Color::Red,
+        _ => return colored::Color::White
+    }
 }
 
 impl Index<CellIndex2d> for GridRelatedData {

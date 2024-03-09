@@ -12,8 +12,10 @@ use bevy::{
     },
 };
 use bevy::prelude::UVec2;
+use bevy::utils::HashMap;
 use derive_more::{Add, AddAssign, AsRef, Constructor, Display, From, Into, Rem, Sub};
 use ndarray::Array2;
+use crate::components::directions::Direction;
 
 pub type CellIndex1d = u32;
 
@@ -21,7 +23,6 @@ pub type CellIndex1d = u32;
 pub enum Occupation {
     Free,
     Occupied,
-    Temp,
 }
 
 impl Default for Occupation {
@@ -53,6 +54,10 @@ impl GridSegment {
     }
 }
 
+#[derive(Resource, Copy, Clone, Default)]
+pub struct ElapsedTimeTracker {
+    pub time_stamp: f32,
+}
 
 #[derive(Resource, Clone)]
 pub struct Grid2D {
@@ -66,6 +71,7 @@ pub struct Grid2D {
     pub max_row_index: u32,
     pub max_column_index: u32,
     pub(crate) indexes: Array2<CellIndex2d>,
+    pub(crate) segments: HashMap<Direction, URect>,
 }
 
 #[derive(Clone, Default)]
@@ -84,6 +90,7 @@ pub struct ObstaclesParameters {
 pub struct GridRelatedData {
     pub(super) data: Array2<GridCellData>,
 }
+
 
 #[derive(Clone, Copy, Default, Component, AsRef, Constructor, From, Into)]
 pub struct CellIndex {

@@ -29,7 +29,6 @@ use crate::{
             Occupation,
         },
         movement_components::{
-            Direction,
             Maneuver,
             MoveTag,
             PerformManeuver,
@@ -42,6 +41,7 @@ use crate::{
     },
     systems::{CELLS_IN_FRONT, PATHFINDING_RECT},
 };
+use crate::components::directions::Direction;
 use crate::components::pathfinding_components::Pathfinder;
 
 pub fn calculate_coordination_data(grid_parameters: &Res<Grid2D>, cell_index: CellIndex2d) -> (SurfaceCoordinate, Transform, Vec2) {
@@ -111,8 +111,8 @@ pub fn avoidance_maneuver_system(mut _commands: Commands, grid: Res<Grid2D>,
                 continue;
             }
             let path_points_global = nav_path.unwrap();
-            pathfinding_map.visualize_path_on_grid(&grid, &path_description_global,
-                                                   &grid_related_data, &path_points_global);
+            /* pathfinding_map.visualize_path_on_grid(&grid, &path_description_global,
+                                                    &grid_related_data, &path_points_global);*/
 
             let global_path_points =
                 grid.calculate_surface_coordinates_for_2d(&path_points_global);

@@ -4,21 +4,15 @@ use pathfinding::prelude::astar;
 
 use crate::{
     components::{
-        grid_components::{
-            definitions::{
-                Grid2D,
-                CellIndex1d,
-                CellIndex2d,
-                Occupation,
-                GridCellData,
-                GridRelatedData,
-            },
-            grid_related_iterators::CoordinateIterator,
+        grid_components::definitions::{
+            CellIndex1d,
+            CellIndex2d,
+            Grid2D,
+            GridCellData,
+            GridRelatedData,
+            Occupation,
         },
-        movement_components::{
-            Direction,
-            SurfaceCoordinate,
-        },
+        movement_components::SurfaceCoordinate,
         pathfinding_components::{Pathfinder, PathfindingMap},
     },
     function_libs::grid_calculations::{
@@ -26,6 +20,7 @@ use crate::{
         ,
     },
 };
+use crate::components::directions::Direction;
 use crate::components::grid_components::grid_related_iterators::AreaLineIterator;
 
 impl<'a> PathfindingMap<'a> {
@@ -209,17 +204,20 @@ impl<'a> PathfindingMap<'a> {
                            is_in_path: bool) -> ColoredString {
         let cell_repr: ColoredString =
             if cell_index2d == pathfinder.start {
-                "S".green()
+                " S ".green()
             } else if cell_index2d == pathfinder.end {
-                "T".red()
+                " T ".red()
             } else if is_in_path {
-                "P".blue()  // Path
+                " P ".blue()  // Path
             } else if cell_related_data.occupation_state == Occupation::Occupied {
-                "O".black()  // Obstacle
+                " O ".black()  // Obstacle
+            } else if cell_related_data.detraction_factor > 0.0 {
+                let number = format!("{:.1}", cell_related_data.detraction_factor);
+                number.black()
             } else if self.area.contains(cell_index2d.into()) {
-                "E".bright_yellow()
+                " E ".bright_yellow()
             } else {
-                "E".bright_black()  // Empty cell
+                " E ".bright_black()  // Empty cell
             };
         cell_repr
     }
@@ -252,4 +250,6 @@ impl<'a> BaseMap for PathfindingMap<'a> {
         exits
     }
 }
+
+
 

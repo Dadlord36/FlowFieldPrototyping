@@ -1,22 +1,32 @@
 use std::cmp::min;
 
-use bevy::math::{IVec2, Rect, URect, UVec2, Vec2};
+use bevy::{
+    math::{IVec2, Rect, URect, UVec2, Vec2},
+    utils::HashMap,
+};
+use colored::{Color, ColoredString, Colorize};
 use ndarray::{Array2, ArrayView2};
 
 use crate::{
     components::{
+        directions::Direction,
         grid_components::{
             definitions::{CellIndex1d, CellIndex2d, Grid2D, GridSegment},
             grid_related_iterators::CoordinateIterator,
         },
-        movement_components::{Coordinate, SurfaceCoordinate},
+        movement_components::{
+            Coordinate,
+            SurfaceCoordinate,
+        },
     },
-    function_libs::grid_calculations::{calculate_1d_index, calculate_2d_index, slice_2d_array},
+    function_libs::grid_calculations::{
+        self
+    },
 };
 
 impl Grid2D {
     pub fn iter_coordinates(&self) -> CoordinateIterator {
-        CoordinateIterator::new(0, self.column_number, 0, self.row_number)
+        CoordinateIterator::new(0, self.max_column_index, 0, self.max_row_index)
     }
 
     pub fn iter_coordinates_range(&self, min: UVec2, max: UVec2) -> CoordinateIterator {
@@ -49,7 +59,9 @@ impl Grid2D {
             max_row_index,
             indexes: Default::default(),
             indexes_rect: URect::from_corners(UVec2::ZERO, UVec2::new(max_column_index, max_row_index)),
+            segments: Default::default(),
         };
+        grid.segments = grid_calculations::split_grid_in_compass_directions(&grid.indexes_rect);
         grid.indexes = grid.get_indexes();
         return grid;
     }
@@ -108,7 +120,7 @@ impl Grid2D {
     ///
     /// The clamped rectangle area defined by the center point and size.
     ///
-    pub fn calculate_area_clamped_from_center(&self, center: CellIndex2d, size: UVec2) -> URect {
+    pub fn calculate_area_clamped_from_center(&self, center: &CellIndex2d, size: UVec2) -> URect {
         // Calculate half sizes
         let half_width = size.x / 2;
         let half_height = size.y / 2;
@@ -138,16 +150,6 @@ impl Grid2D {
     /// # Returns
     ///
     /// The calculated area as a `URect` (unsigned rectangle) object.
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// let point = CellIndex2d { x: 5, y: 10 };
-    /// let direction = IVec2 { x: 1, y: 0 };
-    /// let num_cells = 3;
-    /// let area = calculate_area_from(point, direction, num_cells);
-    /// println!("{:?}", area);
-    /// ```
     pub fn calculate_area_from(&self, point: CellIndex2d, in_direction: IVec2, num_cells: u32) -> URect {
         let adjusted_direction = IVec2::new(in_direction.x * num_cells as i32,
                                             in_direction.y * num_cells as i32);
@@ -182,21 +184,6 @@ impl Grid2D {
     /// # Returns
     ///
     /// The resulting `URect` that represents the line.
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// use crate::geometry::{CellIndex2d, IVec2, URect, UVec2};
-    ///
-    /// let point = CellIndex2d::new(0, 0);
-    /// let in_direction = IVec2::new(1, 0);
-    /// let num_cells = 5;
-    ///
-    /// let rect = calculate_line_from(&point, in_direction, num_cells);
-    ///
-    /// assert_eq!(rect.min, point.into());
-    /// assert_eq!(rect.max, UVec2::new(5, 0));
-    /// ```
     pub fn calculate_line_from(&self, point: CellIndex2d, in_direction: IVec2, num_cells: u32) -> URect {
         // Calculate the new positions in i32 to allow for negative changes
         let new_x = (point.x as i32 + (in_direction.x * num_cells as i32)).clamp(0, self.max_column_index as i32) as u32;
@@ -243,7 +230,7 @@ impl Grid2D {
     }
 
     pub fn get_indexes_segment(&self, area: URect) -> ArrayView2<CellIndex2d> {
-        slice_2d_array(&self.indexes, area)
+        grid_calculations::slice_2d_array(&self.indexes, area)
     }
 
     #[inline]
@@ -269,6 +256,7 @@ impl Grid2D {
         return (CellIndex2d::new(min_x, min_y), CellIndex2d::new(max_x, max_y));
     }
 
+
     #[inline]
     pub fn calculate_cell_index_from_position(&self, position: Vec2) -> CellIndex2d {
         let grid_center = self.shape_rect.center();
@@ -281,12 +269,12 @@ impl Grid2D {
 
     #[inline]
     pub fn calc_cell_index_1d_at(&self, cell_index2d: CellIndex2d) -> CellIndex1d {
-        calculate_1d_index(cell_index2d, self.column_number)
+        grid_calculations::calculate_1d_index(cell_index2d, self.column_number)
     }
 
     #[inline]
     pub fn calc_cell_index_2d_at(&self, cell_index1d: CellIndex1d) -> CellIndex2d {
-        calculate_2d_index(cell_index1d, self.column_number)
+        grid_calculations::calculate_2d_index(cell_index1d, self.column_number)
     }
 
     #[inline]
@@ -316,4 +304,59 @@ impl Grid2D {
     pub fn is_position_in_grid_bounds(&self, position: Vec2) -> bool {
         self.shape_rect.contains(position)
     }
+
+    pub fn visualize_in_log(&self) {
+        println!("{}", "Visualizing grid...".yellow());
+
+        let mut output: Vec<ColoredString> = Vec::new();
+
+        for row in (0..self.row_number).rev() {
+            for col in 0..self.column_number {
+                let cell_index2d = CellIndex2d::new(col, row);
+                let cell_repr: ColoredString = determine_cell_type(&self.segments, &cell_index2d);
+                output.push(format!("|{}| ", cell_repr).normal());
+            }
+            output.push("\n".normal());
+        }
+
+        for colored_string in output {
+            print!("{}", colored_string);
+        }
+
+        for (direction, segment) in self.segments.iter() {
+            let direction_repr = format!("{:?}", direction).to_lowercase();
+            let segment_repr = format!("{:?}", segment);
+            println!("Direction: {}, Segment: {}", direction_repr, segment_repr);
+        }
+    }
 }
+
+fn determine_cell_type(grid_segments: &HashMap<Direction, URect>, cell_index2d: &CellIndex2d) -> ColoredString
+{
+    let number = cell_index2d.to_string();
+    for segment_rect in grid_segments.iter() {
+        if segment_rect.1.contains((*cell_index2d).into()) {
+            return number.color(cet_color_for(segment_rect.0.clone()));
+        }
+    }
+
+    number.color(Color::Red)
+}
+
+//Get color that corresponds to direction. Colors should be maximum contrasted
+fn cet_color_for(direction: Direction) -> Color {
+    match direction {
+        Direction::North => Color::Green,
+        Direction::NorthEast => Color::BrightGreen,
+        Direction::East => Color::Blue,
+        Direction::SouthEast => Color::Yellow,
+        Direction::South => Color::Magenta,
+        Direction::SouthWest => Color::Cyan,
+        Direction::West => Color::White,
+        Direction::NorthWest => Color::Black,
+    }
+}
+
+
+
+
