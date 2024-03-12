@@ -38,11 +38,11 @@ use crate::{
             MovementSpeed,
             PathfindingMap,
         },
+        directions::Direction,
+        pathfinding_components::Pathfinder,
     },
     systems::{CELLS_IN_FRONT, PATHFINDING_RECT},
 };
-use crate::components::directions::Direction;
-use crate::components::pathfinding_components::Pathfinder;
 
 pub fn calculate_coordination_data(grid_parameters: &Res<Grid2D>, cell_index: CellIndex2d) -> (SurfaceCoordinate, Transform, Vec2) {
     let coordinate = grid_parameters.calculate_flat_surface_coordinate_from_2d(cell_index);

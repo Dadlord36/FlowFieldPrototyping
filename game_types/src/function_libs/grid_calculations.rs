@@ -1,22 +1,19 @@
-use std::ops::Sub;
+use std::{
+    collections::HashMap,
+    ops::Sub,
+};
 
-use bevy::{
-    math::{
-        FloatExt,
-        URect,
-        UVec2,
-        Vec2,
-    },
-    utils::HashMap,
+use bevy::math::{
+    FloatExt,
+    URect,
+    UVec2,
+    Vec2,
 };
 use ndarray::{Array2, ArrayView2, ArrayViewMut2, s};
 use num_traits::AsPrimitive;
 
 use crate::components::{
-    directions::{
-        Direction,
-        Direction::SouthWest,
-    },
+    directions::Direction,
     grid_components::definitions::{CellIndex1d, CellIndex2d, Grid2D},
 };
 
@@ -119,42 +116,61 @@ pub fn normalize_rect(rect: URect) -> URect {
 /// # Returns
 ///
 /// An array of `URect` representing the eight compass directions.
+/*pub fn split_grid_in_compass_directions(grid: &URect) -> HashMap<Direction, URect> {
+    let min = grid.min.as_vec2();
+    let max = grid.max.as_vec2();
+
+    let first_seg_max_x = (min.x + (max.x - min.x) / 3.0).round() as u32;
+    let second_seg_max_x = (min.x + 2.0 * (max.x - min.x) / 3.0).round() as u32;
+    let first_seg_max_y = (min.y + (max.y - min.y) / 3.0).round() as u32;
+    let second_seg_max_y = (min.y + 2.0 * (max.y - min.y) / 3.0).round() as u32;
+
+    let min = grid.min;
+    let max = grid.max;
+    let mut directions_map: HashMap<Direction, URect> = HashMap::with_capacity(8);
+
+    directions_map.insert(Direction::NorthWest, URect::new(min.x, second_seg_max_y + 1, first_seg_max_x, max.y));
+    directions_map.insert(Direction::North, URect::new(first_seg_max_x + 1, second_seg_max_y + 1, second_seg_max_x, max.y));
+    directions_map.insert(Direction::NorthEast, URect::new(second_seg_max_x + 1, second_seg_max_y + 1, max.x, max.y));
+    directions_map.insert(Direction::West, URect::new(min.x, first_seg_max_y + 1, first_seg_max_x, second_seg_max_y));
+    directions_map.insert(Direction::East, URect::new(second_seg_max_x + 1, first_seg_max_y + 1, max.x, second_seg_max_y));
+    directions_map.insert(Direction::SouthWest, URect::new(min.x, min.y, first_seg_max_x, first_seg_max_y));
+    directions_map.insert(Direction::South, URect::new(first_seg_max_x + 1, min.y, second_seg_max_x, first_seg_max_y));
+    directions_map.insert(Direction::SouthEast, URect::new(second_seg_max_x + 1, min.y, max.x, first_seg_max_y));
+
+    directions_map
+}*/
 
 pub fn split_grid_in_compass_directions(grid: &URect) -> HashMap<Direction, URect> {
     let min = grid.min.as_vec2();
     let max = grid.max.as_vec2();
 
-    let first_seg_max_x = min.x.lerp(max.x, 1.0 / 3.0) as u32;
-    let second_seg_max_x = min.x.lerp(max.x, 2.0 / 3.0) as u32;
-    let third_seg_max_x = max.x as u32;
+    let first_seg_max_x: u32 = (min.x + (max.x - min.x) / 3.0) as u32;
+    let second_seg_max_x: u32 = (min.x + 2.0 * (max.x - min.x) / 3.0) as u32;
+    let first_seg_max_y: u32 = (min.y + (max.y - min.y) / 3.0) as u32;
+    let second_seg_max_y: u32 = (min.y + 2.0 * (max.y - min.y) / 3.0) as u32;
 
-    let first_seg_max_y = min.y.lerp(max.y, 1.0 / 3.0) as u32;
-    let second_seg_max_y = min.y.lerp(max.y, 2.0 / 3.0) as u32;
-    let third_seg_max_y = max.y as u32;
+    // Compute the center cell index.
+    let center_x: u32 = ((max.x + min.x) / 2.0) as u32;
+    let center_y: u32 = ((max.y + min.y) / 2.0) as u32;
+
 
     let min = grid.min;
+    let max = grid.max;
+
     let mut directions_map: HashMap<Direction, URect> = HashMap::with_capacity(8);
-
-
-    let n = URect::new(min.x, min.y, third_seg_max_x, first_seg_max_y);
-    directions_map.insert(Direction::North, n);
-    let ne = URect::new(second_seg_max_x, min.y, third_seg_max_x, second_seg_max_y);
-    directions_map.insert(Direction::NorthEast, ne);
-    let e = URect::new(second_seg_max_x, first_seg_max_y, third_seg_max_x, second_seg_max_y);
-    directions_map.insert(Direction::East, e);
-    let se = URect::new(second_seg_max_x, second_seg_max_y, third_seg_max_x, third_seg_max_y);
-    directions_map.insert(Direction::SouthEast, se);
-    let s = URect::new(first_seg_max_x, second_seg_max_y, second_seg_max_x, third_seg_max_y);
-    directions_map.insert(Direction::South, s);
-    let sw = URect::new(min.x, second_seg_max_y, first_seg_max_x, third_seg_max_y);
-    directions_map.insert(SouthWest, sw);
-    let w = URect::new(min.x, first_seg_max_y, first_seg_max_x, second_seg_max_y);
-    directions_map.insert(Direction::West, w);
-    let nw = URect::new(min.x, min.y, first_seg_max_x, first_seg_max_y);
-    directions_map.insert(Direction::NorthWest, nw);
+    directions_map.insert(Direction::NorthWest, URect::new(min.x, second_seg_max_y + 1, first_seg_max_x, max.y));
+    directions_map.insert(Direction::North, URect::new(first_seg_max_x + 1, second_seg_max_y + 1, second_seg_max_x, max.y));
+    directions_map.insert(Direction::NorthEast, URect::new(second_seg_max_x + 1, second_seg_max_y + 1, max.x, max.y));
+    directions_map.insert(Direction::West, URect::new(min.x, first_seg_max_y + 1, center_x, second_seg_max_y));
+    directions_map.insert(Direction::East, URect::new(center_x + 1, first_seg_max_y + 1, max.x, second_seg_max_y));
+    directions_map.insert(Direction::SouthWest, URect::new(min.x, min.y, first_seg_max_x, first_seg_max_y));
+    directions_map.insert(Direction::South, URect::new(first_seg_max_x + 1, min.y, second_seg_max_x, first_seg_max_y));
+    directions_map.insert(Direction::SouthEast, URect::new(second_seg_max_x + 1, min.y, max.x, first_seg_max_y));
 
     directions_map
 }
+
 
 /// Checks if two rectangles intersect.
 ///
@@ -204,15 +220,35 @@ pub fn split_grid_in_compass_directions(grid: &URect) -> HashMap<Direction, URec
 ///}
 /// println!("Intersection is working fine!")
 /// ```
-#[inline]
+/*#[inline]
 pub fn are_intersecting_inclusive(rect1: URect, rect2: URect) -> bool {
     rect1.contains(rect2.min) || rect1.contains(rect2.max)
+}*/
+
+/*#[inline]
+pub fn are_intersecting_exclusive(rect1: URect, rect2: URect) -> bool {
+    rect_contains_exclusive(rect1, rect2.min) || rect_contains_exclusive(rect1, rect2.max)
+}*/
+#[inline]
+fn rect_contains_exclusive(rect: URect, point: UVec2) -> bool {
+    (point.cmpgt(rect.min) & point.cmplt(rect.max)).all()
 }
 
-#[inline]
-pub fn are_intersecting_exclusive(rect1: URect, rect2: URect) -> bool {
-    let point = rect2.max;
-    let point1 = rect2.min;
-    (point1.cmpgt(rect1.min) & point1.cmplt(rect1.max)).all() ||
-        (point.cmpgt(rect1.min) & point.cmplt(rect1.max)).all()
+/*#[inline]
+pub fn are_intersecting_exclusive(rect: URect, other: URect) -> bool {
+    (rect.min.cmpge(other.max) | rect.max.cmple(other.min)).any()
+}*/
+
+pub fn are_intersecting_exclusive(rect: URect, other: URect) -> bool {
+    !(rect.max.x < other.min.x ||
+        rect.min.x > other.max.x ||
+        rect.max.y < other.min.y ||
+        rect.min.y > other.max.y)
+}
+
+pub fn are_intersecting_inclusive(rect: URect, other: URect) -> bool {
+    !(rect.max.x <= other.min.x ||
+        rect.min.x >= other.max.x ||
+        rect.max.y <= other.min.y ||
+        rect.min.y >= other.max.y)
 }

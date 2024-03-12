@@ -1,8 +1,8 @@
 use std::cmp::min;
+use std::collections::HashMap;
 
 use bevy::{
     math::{IVec2, Rect, URect, UVec2, Vec2},
-    utils::HashMap,
 };
 use colored::{Color, ColoredString, Colorize};
 use ndarray::{Array2, ArrayView2};
@@ -305,7 +305,7 @@ impl Grid2D {
         self.shape_rect.contains(position)
     }
 
-    pub fn visualize_in_log(&self) {
+    pub fn visualize_indexes_in_log(&self) {
         println!("{}", "Visualizing grid...".yellow());
 
         let mut output: Vec<ColoredString> = Vec::new();
@@ -329,6 +329,26 @@ impl Grid2D {
             println!("Direction: {}, Segment: {}", direction_repr, segment_repr);
         }
     }
+    pub fn visualize_segments_in_log(&self) {
+        println!("{}", "Visualizing grid...".yellow());
+
+        let mut output: Vec<ColoredString> = Vec::new();
+        //reserve elements
+        output.reserve(self.row_number as usize * (self.column_number + 1) as usize);
+
+        for row in (0..self.row_number).rev() {
+            for col in 0..self.column_number {
+                let cell_index2d = CellIndex2d::new(col, row);
+                let cell_repr = determine_cell_symbol(&self.segments, &cell_index2d);
+                output.push(format!("|{:2}| ", cell_repr).normal());
+            }
+            output.push("\n".normal());
+        }
+
+        for colored_string in output {
+            print!("{}", colored_string);
+        }
+    }
 }
 
 fn determine_cell_type(grid_segments: &HashMap<Direction, URect>, cell_index2d: &CellIndex2d) -> ColoredString
@@ -336,7 +356,7 @@ fn determine_cell_type(grid_segments: &HashMap<Direction, URect>, cell_index2d: 
     let number = cell_index2d.to_string();
     for segment_rect in grid_segments.iter() {
         if segment_rect.1.contains((*cell_index2d).into()) {
-            return number.color(cet_color_for(segment_rect.0.clone()));
+            return number.color(get_color_for(segment_rect.0.clone()));
         }
     }
 
@@ -344,7 +364,7 @@ fn determine_cell_type(grid_segments: &HashMap<Direction, URect>, cell_index2d: 
 }
 
 //Get color that corresponds to direction. Colors should be maximum contrasted
-fn cet_color_for(direction: Direction) -> Color {
+pub fn get_color_for(direction: Direction) -> Color {
     match direction {
         Direction::North => Color::Green,
         Direction::NorthEast => Color::BrightGreen,
@@ -357,6 +377,38 @@ fn cet_color_for(direction: Direction) -> Color {
     }
 }
 
+fn determine_cell_symbol(grid_segments: &HashMap<Direction, URect>, cell_index2d: &CellIndex2d) -> String {
+    for segment_rect in grid_segments.iter() {
+        if segment_rect.1.contains((*cell_index2d).into()) {
+            return get_segment_symbol(segment_rect.0.clone());
+        }
+    }
+    return String::default();
+}
 
+fn get_direction_symbol(direction: Direction) -> String {
+    match direction {
+        Direction::North => "↑",
+        Direction::NorthEast => "↗",
+        Direction::East => "→",
+        Direction::SouthEast => "↘",
+        Direction::South => "↓",
+        Direction::SouthWest => "↙",
+        Direction::West => "←",
+        Direction::NorthWest => "↖",
+    }.to_string()
+}
 
-
+//Get symbol corresponding to direction so, that it will look well in blocks
+fn get_segment_symbol(direction: Direction) -> String {
+    match direction {
+        Direction::North => "N",
+        Direction::NorthEast => "NE",
+        Direction::East => "E",
+        Direction::SouthEast => "SE",
+        Direction::South => "S",
+        Direction::SouthWest => "SW",
+        Direction::West => "W",
+        Direction::NorthWest => "NW",
+    }.to_string()
+}

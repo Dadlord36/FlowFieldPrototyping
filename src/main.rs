@@ -37,7 +37,7 @@ mod types_declaration;
 mod systems;
 
 fn main() {
-    let grid_parameters = Grid2D::new(25, 25, Vec2::new(50f32, 50f32));
+    let grid_parameters = Grid2D::new(14, 14, Vec2::new(50f32, 50f32));
     let flow_field = FlowField::form_field(grid_parameters.column_number as usize,
                                            grid_parameters.row_number as usize);
     let mut grid_related_data = GridRelatedData::new(&grid_parameters);
@@ -66,16 +66,16 @@ fn main() {
             ..default()
         }))
         .add_systems(Startup, (setup, spawned_colorized_cells_system, visualize_flow_system,
-                               reset_cells_colorization, detraction_factor_calculation_system,
+                               /*reset_cells_colorization,*/ detraction_factor_calculation_system,
                                spawn_dummy_path_driven_actor, visualize_grid_in_log).chain())
-        /*.add_systems(PreUpdate, (reset_cells_colorization, capture_cursor_position, mouse_hover_system,
-                                 move_camera_system, avoidance_maneuver_system, path_movement_system,
-                                 adjust_coordinate_system, apply_surface_coordinate_system,
-                                 grid_relation_system).chain())
-        .add_systems(Update, (cell_occupation_highlight_system, colorize_obstacles_system, apply_color_to_cell
-                              , visualize_grid_data_in_log).chain())
-        .add_systems(Update, (flow_explosion_system, rotate_flow_arrows_system).chain())*/
-        .add_systems(Update, visualize_grid_data_in_log)
+        /*        .add_systems(PreUpdate, (reset_cells_colorization, capture_cursor_position, mouse_hover_system,
+                                         move_camera_system, avoidance_maneuver_system, path_movement_system,
+                                         adjust_coordinate_system, apply_surface_coordinate_system,
+                                         grid_relation_system).chain())
+                .add_systems(Update, (cell_occupation_highlight_system, colorize_obstacles_system, apply_color_to_cell
+                                      , visualize_grid_data_in_log).chain())*/
+        .add_systems(Update, (flow_explosion_system, rotate_flow_arrows_system).chain())
+        .add_systems(Update, (reset_cells_colorization, apply_color_to_cell).chain())
         .insert_resource(grid_parameters)
         .insert_resource(grid_related_data)
         .insert_resource(obstacle_parameters)

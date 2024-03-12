@@ -2,9 +2,11 @@ use bevy::{
     math::IVec2,
     prelude::{Component, Resource},
 };
-use derive_more::Display;
 
-#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug, Component, Resource, Display)]
+use derive_more::Display;
+use serde::*;
+
+#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug, Deserialize, Serialize, Component, Resource, Display)]
 pub enum Direction {
     North,
     NorthEast,

@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use bevy::{
     math::{
         IVec2,
@@ -9,10 +10,9 @@ use bevy::{
         Component,
         Resource,
         URect,
+        UVec2,
     },
 };
-use bevy::prelude::UVec2;
-use bevy::utils::HashMap;
 use derive_more::{Add, AddAssign, AsRef, Constructor, Display, From, Into, Rem, Sub};
 use ndarray::Array2;
 use crate::components::directions::Direction;
@@ -71,7 +71,7 @@ pub struct Grid2D {
     pub max_row_index: u32,
     pub max_column_index: u32,
     pub(crate) indexes: Array2<CellIndex2d>,
-    pub(crate) segments: HashMap<Direction, URect>,
+    pub segments: HashMap<Direction, URect>,
 }
 
 #[derive(Clone, Default)]
